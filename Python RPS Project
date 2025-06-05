@@ -52,8 +52,8 @@ paper_bt_img = py.image.load("GameResources/paper_button.png").convert_alpha()
 scissor_bt_img = py.image.load("GameResources/scissor_button.png").convert_alpha()
 
 # MODES:
-easy_mode = py.image.load("GameResources/easy.png")
-hard_mode = py.image.load('GameResources/hard.png')
+easy_mode = py.image.load("GameResources/easy.png").convert_alpha()
+hard_mode = py.image.load('GameResources/hard.png').convert_alpha()
 
 easy_mode_rect = easy_mode.get_rect(center=(screen_width // 2 - 300, screen_height // 2))
 hard_mode_rect = hard_mode.get_rect(center=(screen_width // 2 + 300, screen_height // 2))
@@ -68,10 +68,12 @@ bot_score_render = player_score_text.render(f"Score: {str(bot_score)}", True, (2
 state = 'MENU'
 current_difficulty = 'None'
 # TRANSPARENCY
-rock_alpha = 80
-paper_alpha = 80
-scissor_alpha = 80
-
+rock_alpha = 140
+paper_alpha = 140
+scissor_alpha = 140
+easy_alpha = 140
+hard_alpha = 140
+survival_alpha = 140
 # INTERACT BOX
 rock_interact_box = rock_bt_img.get_rect(topleft=(screen_width // 2.5, 550))
 paper_interact_box = paper_bt_img.get_rect(topleft=(180, 550))
@@ -118,50 +120,13 @@ def display_text():
     return_text_render = return_font.render('Return', True, colors[6])
 
     py.draw.rect(screen, colors[3], buttons[1])
-    screen.blit(return_text_render, (x_position[1] + return_text_render.get_height() / 2, y_position[1]))
+    screen.blit(return_text_render, return_text_render.get_rect(center=buttons[1].center))
+
     # BG Color Changer
     color_names_render = font.render('Change color BG', True, colors[6])
     py.draw.rect(screen, colors[8], buttons[3])
-    screen.blit(color_names_render,
-                (x_position[3] + color_names_render.get_height() / 2,
-                 y_position[3] + color_names_render.get_height() / 3))
-    # Information Box
-    py.draw.rect(screen, colors[0], buttons[2])
-    # Win Counts
-    player_win_render = font.render(f'Player Wins: {player_win_counts}', True, colors[6])
-    bot_win_render = font.render(f'Computer Wins: {bot_win_counts}', True, colors[6])
-    plr_bot_text_height = player_win_render.get_height() + bot_win_render.get_height()
-
-    screen.blit(player_win_render, (x_position[2], y_position[2]))
-    screen.blit(bot_win_render, (x_position[2], y_position[2] + player_win_render.get_height()))
-
-    # Run Time
-    current_time = py.time.get_ticks()
-    elapsed_time_ms = current_time - run_time
-    elapsed_time_seconds = elapsed_time_ms / 1000
-    run_time_render = font.render(f'Run Time: {elapsed_time_seconds:.2f}s', True, colors[6])
-
-    screen.blit(run_time_render, (x_position[2], y_position[2] + plr_bot_text_height))
-
-    # Highest Score
-    plr_bot_txt_height_runtime = plr_bot_text_height + run_time_render.get_height()
-    high_score_render = font.render(f'High Score: {high_score}', True, colors[6])
-    screen.blit(high_score_render, (x_position[2], y_position[2] + plr_bot_txt_height_runtime))
-
-    # Color Background
-    color_names_render = font.render(f'BG Color: {color_names[current_bg_idx]}', True, colors[6])
-    full_height = plr_bot_txt_height_runtime + color_names_render.get_height()
-    screen.blit(color_names_render, (x_position[2], y_position[2] + full_height))
-
-    # Current Difficulty
-    current_difficulty_render = font.render(f'Difficulty: {current_difficulty}', True, colors[3])
-    add_height = full_height + current_difficulty_render.get_height()
-    screen.blit(current_difficulty_render, (x_position[2], y_position[2] + add_height))
-
-    py.draw.rect(screen, colors[9], buttons[3])
-    color_names_changer_text = font.render('Change BG Color', True, colors[7])
-    text_rect = color_names_changer_text.get_rect(center=buttons[3].center)
-    screen.blit(color_names_changer_text, text_rect)
+    screen.blit(color_names_render, color_names_render.get_rect(center=buttons[3].center))
+    draw_infobox()
 
 
 def score_counter():
@@ -212,7 +177,7 @@ def play_animation(choice):
             cnt += 1
         if y_hand < 100:
             y_change = 3
-        screen.fill(colors[current_bg_idx])  # Screen Refresh
+        screen.fill(colors[current_bg_idx])  # Screen refresh
         screen.blit(rock_hand_plr, (0, y_hand))
         screen.blit(rock_hand_bot, (600, y_hand))
 
@@ -345,6 +310,10 @@ y_position = [
 
 def draw_menu():
     global font
+    # Mode - Transparency
+    easy_mode.set_alpha(easy_alpha)
+    hard_mode.set_alpha(hard_alpha)
+
     # Mode
     screen.blit(easy_mode, easy_mode_rect)
     screen.blit(hard_mode, hard_mode_rect)
@@ -353,9 +322,7 @@ def draw_menu():
     # Survival Mode
     survival_text_font = py.font.SysFont('Times New Roman', 30)
     survival_text_render = survival_text_font.render('Survival Mode', True, colors[6])
-    survival_text_pos = (x_position[4] + survival_text_render.get_width() // 8,
-                         y_position[4] + survival_text_render.get_height() // 2)
-    screen.blit(survival_text_render, survival_text_pos)
+    screen.blit(survival_text_render, survival_text_render.get_rect(center=buttons[4].center))
     choose_game_mode_font = py.font.SysFont('Aachen', 60)
     choose_game_mode_render = choose_game_mode_font.render('Choose Gamemodes', True, colors[6])
     game_mode_pos = (screen_width // 2 - choose_game_mode_render.get_width() // 2, screen_height // 2 - 150)
@@ -372,19 +339,19 @@ def end_state(bool_value):
     pos = (screen_width // 2 - win_render.get_width() // 2, screen_height // 2 - 150)  # Center the text
     current_difficulty = None
     # Screen Refresh
-    screen.fill(colors[current_bg_idx])
+    screen.fill(colors[current_bg_idx])  # Screen refresh
 
-    # W / L
     if bool_value:
         screen.blit(win_render, pos)
     else:
         screen.blit(lose_render, pos)
 
     # Replay Button
-    return_font = py.font.SysFont("Times New Roman", 40)
+    return_font = py.font.SysFont("Arial", 45)
     return_text_render = return_font.render('Replay', True, colors[6])
+    text_rect = return_text_render.get_rect(center=buttons[5].center)
     py.draw.rect(screen, colors[3], buttons[5])
-    screen.blit(return_text_render, (x_position[5] + return_text_render.get_width() // 2 - 13, y_position[5]))
+    screen.blit(return_text_render, text_rect)
 
     # Information Box
     draw_infobox()
@@ -425,6 +392,7 @@ def draw_infobox():
     add_height = full_height + current_difficulty_render.get_height()
     screen.blit(current_difficulty_render, (x_position[2], y_position[2] + add_height))
 
+    # Color Changer Button
     py.draw.rect(screen, colors[9], buttons[3])
     color_names_changer_text = font.render('Change BG Color', True, colors[7])
     text_rect = color_names_changer_text.get_rect(center=buttons[3].center)
@@ -453,6 +421,12 @@ while playing:
                 elif buttons[4].collidepoint(mouse_pos):
                     current_difficulty = 'SURVIVAL'
                     state = 'BASE'
+            if easy_mode_rect.collidepoint(mouse_pos):
+                easy_alpha = 140
+            elif hard_mode_rect.collidepoint(mouse_pos):
+                hard_alpha = 140
+            else:
+                easy_alpha = hard_alpha = 255
             continue
 
         # BASE GAME LOGIC
@@ -512,17 +486,17 @@ while playing:
                     player_score = 0
                     adapt_chance = 0
                     computer.reset()
+                if buttons[3].collidepoint(mouse_pos):
+                    current_bg_idx = (current_bg_idx + 1) % len(colors)
 
-    screen.fill(colors[current_bg_idx])
+    screen.fill(colors[current_bg_idx])  # Screen refresh
 
     if state == 'MENU':
         draw_menu()
-
     elif state == 'BASE' or state == 'PLAY':
         if state == 'BASE':
             screen.blit(rock_hand_bot, hand_pos[1])
             screen.blit(rock_hand_plr, hand_pos[0])
-
         # Set Transparency
         rock_bt_img.set_alpha(rock_alpha)
         paper_bt_img.set_alpha(paper_alpha)
@@ -532,13 +506,12 @@ while playing:
         screen.blit(paper_bt_img, paper_interact_box)
         screen.blit(scissor_bt_img, scissor_interact_box)
         display_text()
-        if player_score > 0:  # 50 to win
+        if player_score > 20:  # 50 to win
             state = 'END'
             end_state(True)
-        elif bot_score > 0:
+        elif bot_score > 20:
             state = 'END'
             end_state(False)
     elif state == 'END':
         end_state(player_score > bot_score)
     py.display.update()
-# End
