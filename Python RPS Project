@@ -3,6 +3,7 @@ import sys
 import time
 import random as rd
 from GameResources import computer
+
 py.init()
 
 run_time = py.time.get_ticks()
@@ -73,7 +74,7 @@ paper_alpha = 140
 scissor_alpha = 140
 easy_alpha = 140
 hard_alpha = 140
-survival_alpha = 140
+_alpha = 140
 # INTERACT BOX
 rock_interact_box = rock_bt_img.get_rect(topleft=(screen_width // 2.5, 550))
 paper_interact_box = paper_bt_img.get_rect(topleft=(180, 550))
@@ -92,6 +93,19 @@ font = py.font.SysFont('TIMES NEW ROMAN', 20)
 bg_music = py.mixer.Sound('GameResources/nhacnen.mp3')
 bg_music.play(-1)
 bg_music.set_volume(.5)
+alpha = 255
+
+# Volume Button
+current_volume = True
+vol_on = py.image.load('GameResources/VolOn.png').convert_alpha()
+vol_off = py.image.load('GameResources/VolOff.png').convert_alpha()
+on_height = vol_on.get_height()
+off_height = vol_off.get_height()
+vol_on_rect = vol_on.get_rect(topleft=(0, screen_height - on_height))
+vol_off_rect = vol_off.get_rect(topleft=(0, screen_height - off_height))
+
+# Hover state for volume button
+is_volume_hovered = False
 
 # Hand Icons:
 rock_icon = py.image.load('GameResources/icon_rock.png')
@@ -135,15 +149,15 @@ def score_counter():
     # PLAYER WIN
     if player_choice == 'ROCK' and bot_choice == 'SCISSOR':
         player_score += 1
-        if adapt_chance < 90 and current_difficulty == "SURVIVAL":
+        if adapt_chance < 90 and current_difficulty == "ENDLESS":
             adapt_chance += rd.randint(1, 5)
     elif player_choice == 'PAPER' and bot_choice == 'ROCK':
         player_score += 1
-        if adapt_chance < 90 and current_difficulty == "SURVIVAL":
+        if adapt_chance < 90 and current_difficulty == "ENDLESS":
             adapt_chance += rd.randint(1, 5)
     elif player_choice == 'SCISSOR' and bot_choice == 'PAPER':
         player_score += 1
-        if adapt_chance < 90 and current_difficulty == "SURVIVAL":
+        if adapt_chance < 90 and current_difficulty == "ENDLESS":
             adapt_chance += rd.randint(1, 5)
     # BOT WIN
     if bot_choice == 'ROCK' and player_choice == 'SCISSOR':
@@ -211,7 +225,7 @@ def play_animation(choice):
         elif model_picker == 'MARKOV':  # Markov model
             picked = computer.pick(before)
             bot_choice = ['ROCK', 'PAPER', 'SCISSOR'][picked - 1]
-    elif current_difficulty == 'SURVIVAL':
+    elif current_difficulty == 'ENDLESS':
         model_picker = rd.choices(['MARKOV', 'WIN INCREASE'],
                                   weights=[1 - adapt_chance / 100, adapt_chance / 100], k=1)[0]
         print(adapt_chance)
@@ -269,7 +283,7 @@ buttons = [
     py.Rect(screen_width - 250 - 600, 0, 150, 50),  # Return Box [1]
     py.Rect(screen_width - 250, 0, 250, 135),  # Information Box [2]
     py.Rect(screen_width - 250 - 400, 0, 210, 50),  # BG Color Changer Box [3]
-    py.Rect(screen_width // 2.45, screen_height // 2 + hard_mode.get_height(), 220, 70),  # Survival Mode Button [4]
+    py.Rect(screen_width // 2.45, screen_height // 2 + hard_mode.get_height(), 220, 70),  # Endless Mode Button [4]
     py.Rect(screen_width // 2 - 100, screen_height // 2, 200, 50),  # Replay Button - End [5]
     py.Rect(screen_width // 2 - 500, screen_height // 2 - 500, 500, 500),  # Guide GUI
 ]
@@ -292,7 +306,7 @@ x_position = [
     buttons[1].x,  # X Return Box [1]
     buttons[2].x,  # X Information Box [2]
     buttons[3].x,  # X BG Color Changer Box [3]
-    buttons[4].x,  # X Survival Mode [4]
+    buttons[4].x,  # X Endless Mode [4]
     buttons[5].x,  # X Replay Button [5]
     buttons[6].x,  # X Guide GUI [6]
 ]
@@ -302,7 +316,7 @@ y_position = [
     buttons[1].y,  # Y Return Box [1]
     buttons[2].y,  # Y Information Box [2]
     buttons[3].y,  # Y BG Color Changer Box [3]
-    buttons[4].y,  # Y Survival Mode [4]
+    buttons[4].y,  # Y Endless Mode [4]
     buttons[5].y,  # Y Replay Button [5]
     buttons[6].y,  # Y Guide GUI [6]
 ]
@@ -319,14 +333,19 @@ def draw_menu():
     screen.blit(hard_mode, hard_mode_rect)
     py.draw.rect(screen, colors[3], buttons[4])
 
-    # Survival Mode
-    survival_text_font = py.font.SysFont('Times New Roman', 30)
-    survival_text_render = survival_text_font.render('Survival Mode', True, colors[6])
-    screen.blit(survival_text_render, survival_text_render.get_rect(center=buttons[4].center))
+    # Endless Mode
+    endless_text_font = py.font.SysFont('Times New Roman', 30)
+    endless_text_render = endless_text_font.render('Endless Mode', True, colors[6])
+    screen.blit(endless_text_render, endless_text_render.get_rect(center=buttons[4].center))
     choose_game_mode_font = py.font.SysFont('Aachen', 60)
     choose_game_mode_render = choose_game_mode_font.render('Choose Gamemodes', True, colors[6])
     game_mode_pos = (screen_width // 2 - choose_game_mode_render.get_width() // 2, screen_height // 2 - 150)
     screen.blit(choose_game_mode_render, game_mode_pos)
+
+    # Icon Position:
+    screen.blit(rock_icon, rock_icon_position)
+    screen.blit(paper_icon, paper_icon_position)
+    screen.blit(scissor_icon, scissor_icon_position)
 
     draw_infobox()
 
@@ -355,12 +374,17 @@ def end_state(bool_value):
 
     # Information Box
     draw_infobox()
+
+    # Draw Volume Button
+    draw_volume()
+
     py.display.update()
 
 
 def draw_infobox():
     # Information Box
     py.draw.rect(screen, colors[0], buttons[2])
+
     # Win Counts
     player_win_render = font.render(f'Player Wins: {player_win_counts}', True, colors[6])
     bot_win_render = font.render(f'Computer Wins: {bot_win_counts}', True, colors[6])
@@ -399,6 +423,27 @@ def draw_infobox():
     screen.blit(color_names_changer_text, text_rect)
 
 
+def draw_volume():
+    global mouse_pos, alpha, current_volume, is_volume_hovered
+    # Check if mouse is hovering over volume button
+    now_hovered = vol_on_rect.collidepoint(mouse_pos) or vol_off_rect.collidepoint(mouse_pos)
+
+    # Update alpha only if hover state changes
+    if now_hovered != is_volume_hovered:
+        is_volume_hovered = now_hovered
+        alpha = 180 if is_volume_hovered else 255
+
+    # Apply transparency
+    vol_on.set_alpha(alpha)
+    vol_off.set_alpha(alpha)
+
+    # Display Toggle Image
+    if current_volume:
+        screen.blit(vol_on, vol_on_rect)
+    else:
+        screen.blit(vol_off, vol_off_rect)
+
+
 while playing:
     mouse_pos = py.mouse.get_pos()
     for event in py.event.get():
@@ -419,14 +464,21 @@ while playing:
                 elif buttons[3].collidepoint(mouse_pos):
                     current_bg_idx = (current_bg_idx + 1) % len(colors)
                 elif buttons[4].collidepoint(mouse_pos):
-                    current_difficulty = 'SURVIVAL'
+                    current_difficulty = 'ENDLESS'
                     state = 'BASE'
+                elif vol_on_rect.collidepoint(mouse_pos) or vol_off_rect.collidepoint(mouse_pos):
+                    current_volume = not current_volume
+                    if current_volume:
+                        bg_music.set_volume(0.5)
+                    else:
+                        bg_music.set_volume(0)
             if easy_mode_rect.collidepoint(mouse_pos):
                 easy_alpha = 140
             elif hard_mode_rect.collidepoint(mouse_pos):
                 hard_alpha = 140
             else:
                 easy_alpha = hard_alpha = 255
+
             continue
 
         # BASE GAME LOGIC
@@ -461,9 +513,9 @@ while playing:
                 if buttons[1].collidepoint(mouse_pos):
                     state = 'MENU'
                     current_difficulty = 'None'
-                    if bot_score < player_score:
+                    if bot_score < player_score and player_score - bot_score >= 5:
                         player_win_counts += 1
-                    elif bot_score > player_score:
+                    elif bot_score > player_score and bot_score - player_score >= 5:
                         bot_win_counts += 1
                     bot_score = 0
                     player_score = 0
@@ -471,7 +523,12 @@ while playing:
                     computer.reset()
                 if buttons[3].collidepoint(mouse_pos):
                     current_bg_idx = (current_bg_idx + 1) % len(colors)
-
+                if vol_on_rect.collidepoint(mouse_pos) or vol_off_rect.collidepoint(mouse_pos):
+                    current_volume = not current_volume
+                    if current_volume:
+                        bg_music.set_volume(0.5)
+                    else:
+                        bg_music.set_volume(0)
         # END STATE LOGIC
         if state == 'END':
             if event.type == py.MOUSEBUTTONDOWN:
@@ -488,11 +545,17 @@ while playing:
                     computer.reset()
                 if buttons[3].collidepoint(mouse_pos):
                     current_bg_idx = (current_bg_idx + 1) % len(colors)
-
+                if vol_on_rect.collidepoint(mouse_pos) or vol_off_rect.collidepoint(mouse_pos):
+                    current_volume = not current_volume
+                    if current_volume:
+                        bg_music.set_volume(0.5)
+                    else:
+                        bg_music.set_volume(0)
     screen.fill(colors[current_bg_idx])  # Screen refresh
 
     if state == 'MENU':
         draw_menu()
+        draw_volume()
     elif state == 'BASE' or state == 'PLAY':
         if state == 'BASE':
             screen.blit(rock_hand_bot, hand_pos[1])
@@ -506,12 +569,14 @@ while playing:
         screen.blit(paper_bt_img, paper_interact_box)
         screen.blit(scissor_bt_img, scissor_interact_box)
         display_text()
-        if player_score > 20:  # 50 to win
-            state = 'END'
-            end_state(True)
-        elif bot_score > 20:
-            state = 'END'
-            end_state(False)
+        draw_volume()
+        if not current_difficulty == 'ENDLESS':
+            if player_score >= 1:  # 20 to win
+                state = 'END'
+                end_state(True)
+            elif bot_score >= 1:
+                state = 'END'
+                end_state(False)
     elif state == 'END':
         end_state(player_score > bot_score)
     py.display.update()
