@@ -1,6 +1,5 @@
 import pygame as py
 import sys
-import time
 import random as rd
 from GameResources import computer
 
@@ -8,19 +7,50 @@ py.init()
 
 run_time = py.time.get_ticks()
 
-player_win_counts = bot_win_counts = 0
-# Create or read Win-count file
-try:
-    with open('input.txt', 'x', encoding='utf-8') as file:
-        file.write(f'{player_win_counts} \n'
-                   f'{bot_win_counts}')  # 0 if first time creating
-except FileExistsError:
-    # Read existing win counts from file
-    with open('input.txt', 'r', encoding='utf-8') as file:
-        lines = file.readlines()
-        player_win_counts = int(lines[0].strip()) if lines else 0
-        bot_win_counts = int(lines[1].strip()) if len(lines) > 1 else 0
+player_win_counts = bot_win_counts = high_score = current_bg_idx = exp = exp_display = 0
+level = 1
+exp_required = 150
+exp_bar_width = 150
+exp_bar_height = 20
+current_volume = True
+armored = False
+sfx = py.mixer.Sound('GameResources/sfx.wav')
 
+try:
+    with open('Save.txt', 'x', encoding='utf-8') as file:
+        file.write(f'{player_win_counts} \n'
+                   f'{bot_win_counts} \n'
+                   f'{high_score} \n'
+                   f'{current_bg_idx} \n'
+                   f'{current_volume} \n'
+                   f'{exp} \n'
+                   f'{level} \n'
+                   f'{exp_display} \n'
+                   f'{exp_required} \n'
+                   f'{armored} \n')
+except FileExistsError:
+    with open('Save.txt', 'r', encoding='utf-8') as file:
+        lines = file.readlines()
+        if lines:
+            player_win_counts = int(lines[0].strip())
+        if len(lines) > 1:
+            bot_win_counts = int(lines[1].strip())
+        if len(lines) > 2:
+            high_score = int(lines[2].strip())
+        if len(lines) > 3:
+            current_bg_idx = int(lines[3].strip())
+        if len(lines) > 4:
+            current_volume = lines[4].strip() == 'True'
+        if len(lines) > 5:
+            exp = int(lines[5].strip())
+        if len(lines) > 6:
+            level = int(lines[6].strip())
+        if len(lines) > 7:
+            exp_display = int(lines[7].strip())
+        if len(lines) > 8:
+            exp_required = int(lines[8].strip())
+        if len(lines) > 9:
+            armored = lines[9].strip() == 'True'
 # Set window + Title + Startup
 screen_width = 1200
 screen_height = 690
@@ -41,13 +71,11 @@ color_names = [
     'Purple',
 ]
 
-current_bg_idx = 0
-
 # Set Icon
 icon = py.image.load("GameResources/icon.png")
 py.display.set_icon(icon)
 playing = True
-high_score = 0
+
 # MATERIALS
 
 # HANDS
@@ -73,7 +101,7 @@ easy_mode_rect = easy_mode.get_rect(center=(screen_width // 2 - 300, screen_heig
 hard_mode_rect = hard_mode.get_rect(center=(screen_width // 2 + 300, screen_height // 2))
 
 # SCORE COUNTER
-player_score = bot_score = 0
+player_score = bot_score = endless_score = 0
 player_score_text = py.font.SysFont("Arial", 20)
 player_score_render = player_score_text.render(f"Score: {str(player_score)}", True, (255, 255, 255))
 bot_score_text = py.font.SysFont("Arial", 20)
@@ -81,13 +109,10 @@ bot_score_render = player_score_text.render(f"Score: {str(bot_score)}", True, (2
 
 state = 'MENU'
 current_difficulty = 'None'
+
 # TRANSPARENCY
-rock_alpha = 140
-paper_alpha = 140
-scissor_alpha = 140
-easy_alpha = 140
-hard_alpha = 140
-_alpha = 140
+rock_alpha = paper_alpha = scissor_alpha = easy_alpha = hard_alpha = _alpha = 140
+
 # INTERACT BOX
 rock_interact_box = rock_bt_img.get_rect(topleft=(screen_width // 2.5, 550))
 paper_interact_box = paper_bt_img.get_rect(topleft=(180, 550))
@@ -108,7 +133,6 @@ bg_music.set_volume(.5)
 alpha = 255
 
 # VOLUME BUTTON
-current_volume = True
 vol_on = py.image.load('GameResources/VolOn.png').convert_alpha()
 vol_off = py.image.load('GameResources/VolOff.png').convert_alpha()
 on_height = vol_on.get_height()
@@ -156,137 +180,172 @@ def display_text():
 
 def score_counter():
     global player_score, bot_score, player_choice, bot_choice, bot_win_counts, player_win_counts, state, high_score
-    global adapt_chance
+    global adapt_chance, armored
     # PLAYER WIN
     if player_choice == 'ROCK' and bot_choice == 'SCISSOR':
         player_score += 1
+        exp_counter('TEST')
         if adapt_chance < 90 and current_difficulty == "ENDLESS":
             adapt_chance += rd.randint(1, 5)
     elif player_choice == 'PAPER' and bot_choice == 'ROCK':
         player_score += 1
+        exp_counter('TEST')
         if adapt_chance < 90 and current_difficulty == "ENDLESS":
             adapt_chance += rd.randint(1, 5)
     elif player_choice == 'SCISSOR' and bot_choice == 'PAPER':
         player_score += 1
+        exp_counter('TEST')
         if adapt_chance < 90 and current_difficulty == "ENDLESS":
             adapt_chance += rd.randint(1, 5)
     # BOT WIN
     if bot_choice == 'ROCK' and player_choice == 'SCISSOR':
-        bot_score += 1
+        if not armored:
+            bot_score += 1
+        else:
+            armored = False
     elif bot_choice == 'PAPER' and player_choice == 'ROCK':
-        bot_score += 1
+        if not armored:
+            bot_score += 1
+        else:
+            armored = False
     elif bot_choice == 'SCISSOR' and player_choice == 'PAPER':
-        bot_score += 1
+        if not armored:
+            bot_score += 1
+        else:
+            armored = False
     print(f'ADAPTED: {adapt_chance}')
     print(f'Win Granted Chance: {adapt_chance * .7:.2f}%')
     # High Score
     if player_score > high_score:
         high_score = player_score
-    if player_score > 2:
-        state = 'END'
-    elif bot_score > 2:
-        state = 'END'
 
 
 def play_animation(choice):
-    global state, bot_choice, player_choice, adapt_chance
-
+    global state, bot_choice, player_choice, adapt_chance, playing
+    global exp, exp_display, exp_required, level
+    global sfx
     y_hand = 100
     y_change = 2
     cnt = 0  # Animation time play
+    pause_start = 0
+    pause_duration = 2000  # 2 seconds in milliseconds
+    pausing = False
 
-    while cnt < 3:
-        y_hand += y_change
-        if y_hand > 150:
-            y_change = -3
-            cnt += 1
-        if y_hand < 100:
-            y_change = 3
+    # Animation
+    while cnt < 3 or pausing:
+        if exp_display >= exp_required:
+            level += 1
+            exp_display = int(exp_display - exp_required)
+            exp = int(exp_display / level)
+            exp_required = 150 * level
+            sfx.play(0)
+        if not pausing:
+            y_hand += y_change
+            if y_hand > 150:
+                y_change = -3
+                cnt += 1
+            if y_hand < 100:
+                y_change = 3
+
         screen.fill(colors[current_bg_idx])  # Screen refresh
-        screen.blit(rock_hand_plr, (0, y_hand))
-        screen.blit(rock_hand_bot, (600, y_hand))
+        if cnt < 3:
+            screen.blit(rock_hand_plr, (0, y_hand))
+            screen.blit(rock_hand_bot, (600, y_hand))
+        elif not pausing:
+            if current_difficulty == 'EASY':
+                picked = computer.pick(before)
+                bot_choice = ['ROCK', 'PAPER', 'SCISSOR'][picked - 1]  # Markov - Easy
+            elif current_difficulty == 'HARD':
+                model_picker = rd.choice(['MARKOV', 'WIN INCREASE'])  # Pick Model
+                if model_picker == 'WIN INCREASE':  # Higher Win chance
+                    winning_moves = {
+                        'ROCK': 'PAPER',
+                        'PAPER': 'SCISSOR',
+                        'SCISSOR': 'ROCK',
+                    }
+                    losing_moves = {
+                        'ROCK': 'SCISSOR',
+                        'PAPER': 'ROCK',
+                        'SCISSOR': 'PAPER',
+                    }
+                    outcome = rd.choices(['WIN', 'TIE', 'LOSE'], weights=[0.7, 0.1, 0.2], k=1)[0]  # 70% W 10% Tie 20% L
+                    if outcome == 'WIN':
+                        bot_choice = winning_moves[choice]
+                    elif outcome == 'TIE':
+                        bot_choice = choice
+                    else:  # LOSE
+                        bot_choice = losing_moves[choice]
+                elif model_picker == 'MARKOV':  # Markov model
+                    picked = computer.pick(before)
+                    bot_choice = ['ROCK', 'PAPER', 'SCISSOR'][picked - 1]
+            elif current_difficulty == 'ENDLESS':
+                model_picker = rd.choices(['MARKOV', 'WIN INCREASE'],
+                                          weights=[1 - adapt_chance / 100, adapt_chance / 100], k=1)[0]
+                if model_picker == 'WIN INCREASE':  # Higher Win chance
+                    winning_moves = {
+                        'ROCK': 'PAPER',
+                        'PAPER': 'SCISSOR',
+                        'SCISSOR': 'ROCK',
+                    }
+                    losing_moves = {
+                        'ROCK': 'SCISSOR',
+                        'PAPER': 'ROCK',
+                        'SCISSOR': 'PAPER',
+                    }
+                    outcome = rd.choices(['WIN', 'TIE', 'LOSE'], weights=[0.7, 0.1, 0.2], k=1)[0]  # 70% W 10% Tie 20% L
+                    if outcome == 'WIN':
+                        bot_choice = winning_moves[choice]
+                    elif outcome == 'TIE':
+                        bot_choice = choice
+                    else:  # LOSE
+                        bot_choice = losing_moves[choice]
+                elif model_picker == 'MARKOV':
+                    picked = computer.pick(before)
+                    bot_choice = ['ROCK', 'PAPER', 'SCISSOR'][picked - 1]
 
+            player_choice = choice
+            score_counter()
+            pausing = True
+            pause_start = py.time.get_ticks()
+
+        if pausing:
+            current_time = py.time.get_ticks()
+            if current_time - pause_start >= pause_duration:
+                pausing = False
+                state = 'BASE'  # STATE RESET
+
+            if player_choice == 'ROCK':
+                screen.blit(rock_hand_plr, hand_pos[0])
+            elif player_choice == 'PAPER':
+                screen.blit(paper_hand_plr, hand_pos[0])
+            elif player_choice == 'SCISSOR':
+                screen.blit(scissor_hand_plr, hand_pos[0])
+
+            if bot_choice == 'ROCK':
+                screen.blit(rock_hand_bot, hand_pos[1])
+            elif bot_choice == 'PAPER':
+                screen.blit(paper_hand_bot, hand_pos[1])
+            elif bot_choice == 'SCISSOR':
+                screen.blit(scissor_hand_bot, hand_pos[1])
+
+        exp_bar('GAME')
         display_text()
-
         py.display.update()
-    if current_difficulty == 'EASY':  # Easy Difficulty Logic
-        picked = computer.pick(before)
-        bot_choice = ['ROCK', 'PAPER', 'SCISSOR'][picked - 1]  # Markov
-    elif current_difficulty == 'HARD':
-        model_picker = rd.choice(['MARKOV', 'WIN INCREASE'])  # Pick Model
-        print(model_picker)
-        if model_picker == 'WIN INCREASE':  # Higher Win chance
-            winning_moves = {
-                'ROCK': 'PAPER',
-                'PAPER': 'SCISSOR',
-                'SCISSOR': 'ROCK',
-            }
-            losing_moves = {
-                'ROCK': 'SCISSOR',
-                'PAPER': 'ROCK',
-                'SCISSOR': 'PAPER',
-            }
-            outcome = rd.choices(['WIN', 'TIE', 'LOSE'], weights=[0.7, 0.1, 0.2], k=1)[0]  # 70% W 10% Tie 20% L
-            if outcome == 'WIN':
-                bot_choice = winning_moves[choice]
-            elif outcome == 'TIE':
-                bot_choice = choice
-            else:  # LOSE
-                bot_choice = losing_moves[choice]
-        elif model_picker == 'MARKOV':  # Markov model
-            picked = computer.pick(before)
-            bot_choice = ['ROCK', 'PAPER', 'SCISSOR'][picked - 1]
-    elif current_difficulty == 'ENDLESS':
-        model_picker = rd.choices(['MARKOV', 'WIN INCREASE'],
-                                  weights=[1 - adapt_chance / 100, adapt_chance / 100], k=1)[0]
-        print(adapt_chance)
-        print(model_picker)
-        if model_picker == 'WIN INCREASE':  # Higher Win chance
-            winning_moves = {
-                'ROCK': 'PAPER',
-                'PAPER': 'SCISSOR',
-                'SCISSOR': 'ROCK',
-            }
-            losing_moves = {
-                'ROCK': 'SCISSOR',
-                'PAPER': 'ROCK',
-                'SCISSOR': 'PAPER',
-            }
-            outcome = rd.choices(['WIN', 'TIE', 'LOSE'], weights=[0.7, 0.1, 0.2], k=1)[0]  # 70% W 10% Tie 20% L
-            if outcome == 'WIN':
-                bot_choice = winning_moves[choice]
-            elif outcome == 'TIE':
-                bot_choice = choice
-            else:  # LOSE
-                bot_choice = losing_moves[choice]
-        elif model_picker == 'MARKOV':
-            picked = computer.pick(before)
-            bot_choice = ['ROCK', 'PAPER', 'SCISSOR'][picked - 1]
-
-    player_choice = choice
-    score_counter()
-    screen.fill(colors[current_bg_idx])  # Screen refresh
-    # PLAYER CHOICE
-    if player_choice == 'ROCK':
-        screen.blit(rock_hand_plr, hand_pos[0])
-    elif player_choice == 'PAPER':
-        screen.blit(paper_hand_plr, hand_pos[0])
-    elif player_choice == 'SCISSOR':
-        screen.blit(scissor_hand_plr, hand_pos[0])
-
-    # BOT CHOICE
-    if bot_choice == 'ROCK':
-        screen.blit(rock_hand_bot, hand_pos[1])
-    elif bot_choice == 'PAPER':
-        screen.blit(paper_hand_bot, hand_pos[1])
-    elif bot_choice == 'SCISSOR':
-        screen.blit(scissor_hand_bot, hand_pos[1])
-
-    display_text()
-
-    py.display.update()
-    time.sleep(2)
-    state = 'BASE'  # STATE RESET
+        for event in py.event.get():
+            if event.type == py.QUIT:
+                playing = False
+                with open('Save.txt', 'w', encoding='utf-8') as file:
+                    file.write(f'{player_win_counts} \n'
+                               f'{bot_win_counts} \n'
+                               f'{high_score} \n'
+                               f'{current_bg_idx} \n'
+                               f'{current_volume} \n'
+                               f'{int(exp)} \n'
+                               f'{level} \n'
+                               f'{int(exp_display)} \n'
+                               f'{exp_required} \n')
+                py.quit()
+                sys.exit()
 
 
 buttons = [
@@ -358,6 +417,7 @@ def draw_menu():
     screen.blit(paper_icon, paper_icon_position)
     screen.blit(scissor_icon, scissor_icon_position)
 
+    exp_bar('BASE')
     draw_infobox()
     reset()
 
@@ -366,7 +426,7 @@ def end_state(bool_value):
     global current_difficulty
     win_font = py.font.SysFont('Aachen', 60)
     win_render = win_font.render('You Won!', True, colors[6])
-    lose_render = win_font.render('You Lose!', True, colors[6])
+    lose_render = win_font.render('You Lost!', True, colors[6])
     pos = (screen_width // 2 - win_render.get_width() // 2, screen_height // 2 - 150)  # Center the text
     current_difficulty = None
     # Screen Refresh
@@ -384,13 +444,10 @@ def end_state(bool_value):
     py.draw.rect(screen, colors[3], buttons[5])
     screen.blit(return_text_render, text_rect)
 
-    # Information Box
     draw_infobox()
-
-    # Draw Volume Button
     draw_volume()
-
     reset()
+    exp_bar('BASE')
     py.display.update()
 
 
@@ -438,6 +495,12 @@ def draw_infobox():
 
 def draw_volume():
     global mouse_pos, alpha, current_volume, is_volume_hovered
+    if current_volume:
+        bg_music.set_volume(0.5)
+        sfx.set_volume(0.5)
+    else:
+        bg_music.set_volume(0)
+        sfx.set_volume(0)
     # Check if mouse is hovering over volume button
     now_hovered = vol_on_rect.collidepoint(mouse_pos) or vol_off_rect.collidepoint(mouse_pos)
 
@@ -464,15 +527,79 @@ def reset():
     screen.blit(reset_txt, (x_position[6] + 45, y_position[6] + 10))
 
 
+def exp_bar(location):
+    _font = py.font.SysFont("Arial", 30)
+    exp_text = _font.render(f'EXP: {int(exp_display)} / {exp_required}', True, colors[6])
+    level_txt = _font.render(f'Level: {level}', True, colors[6])
+    if armored:
+        armored_txt = _font.render(f'Armored: {True}', True, colors[6])
+    else:
+        armored_txt = _font.render(f'Armored: {False}. Press G to activate Armor (-1 LV)', True, colors[6])
+    if location == 'BASE':
+        # EXP Bar
+        py.Rect(0, 0, 150, 20)  # Back EXP bar
+        py.Rect(0, 0, int(exp), 20)  # Front EXP bar
+
+        py.draw.rect(screen, colors[6], py.Rect(0, 0, 150, 20))
+        py.draw.rect(screen, colors[4], py.Rect(0, 0, exp, 20))
+
+        screen.blit(exp_text, (0, 20))
+        screen.blit(level_txt, (0, 50))
+        screen.blit(armored_txt, (0, 80))
+    elif location == 'GAME':
+        # EXP Bar
+        py.Rect(0, 0, 150, 20)  # Back EXP bar
+        py.Rect(0, 0, exp, 20)  # Front EXP bar
+
+        py.draw.rect(screen, colors[6], py.Rect(0, 400, 150, 20))
+        py.draw.rect(screen, colors[4], py.Rect(0, 400, exp, 20))
+
+        # EXP Text
+        screen.blit(exp_text, (0, 420))
+        screen.blit(level_txt, (0, 450))
+        screen.blit(armored_txt, (0, 480))
+
+
+def exp_counter(increase_type):
+    global exp, exp_display, exp_required, level
+    if increase_type == 'EASY WIN':
+        exp += 100 / level
+        exp_display += 100
+    elif increase_type == 'HARD WIN':
+        exp += 200 / level
+        exp_display += 200
+    elif increase_type == 'ENDLESS WIN':
+        exp += 250 / level
+        exp_display += 250
+    elif increase_type == 'BASE WIN':
+        if current_difficulty != 'ENDLESS':
+            exp += 20 / level
+            exp_display += 20
+        else:
+            exp += 50 / level
+            exp_display += 50
+    elif increase_type == 'TEST':
+        exp += 69420 / level
+        exp_display += 69420
+
+
 while playing:
     mouse_pos = py.mouse.get_pos()
     for event in py.event.get():
         # CLOSE
         if event.type == py.QUIT:
             playing = False
-            with open('input.txt', 'w', encoding='utf-8') as file:
-                file.write(f'{player_win_counts} \n')
-                file.write(f'{bot_win_counts}')
+            with open('Save.txt', 'w', encoding='utf-8') as file:
+                file.write(f'{player_win_counts} \n'
+                           f'{bot_win_counts} \n'
+                           f'{high_score} \n'
+                           f'{current_bg_idx} \n'
+                           f'{current_volume} \n'
+                           f'{exp} \n'
+                           f'{level} \n'
+                           f'{exp_display} \n'
+                           f'{exp_required} \n'
+                           f'{armored} \n')
             py.quit()
             sys.exit()
         # MENU
@@ -489,15 +616,14 @@ while playing:
                 elif buttons[4].collidepoint(mouse_pos):
                     current_difficulty = 'ENDLESS'
                     state = 'BASE'
+                    endless_score = 0
                 elif vol_on_rect.collidepoint(mouse_pos) or vol_off_rect.collidepoint(mouse_pos):
                     current_volume = not current_volume
-                    if current_volume:
-                        bg_music.set_volume(0.5)
-                    else:
-                        bg_music.set_volume(0)
                 if buttons[6].collidepoint(mouse_pos):
-                    # Xóa nội dung tệp input.txt và ghi 0 vào cả hai dòng
-                    bot_win_counts = player_win_counts = 0
+                    bot_win_counts = player_win_counts = high_score = current_bg_idx = exp = exp_display = 0
+                    current_volume = True
+                    exp_required = 150
+                    level = 1
             if easy_mode_rect.collidepoint(mouse_pos):
                 easy_alpha = 140
             elif hard_mode_rect.collidepoint(mouse_pos):
@@ -536,26 +662,41 @@ while playing:
                 rock_alpha, paper_alpha, scissor_alpha = 255, 255, 255
             if event.type == py.MOUSEBUTTONDOWN:
                 if buttons[1].collidepoint(mouse_pos):
+                    if current_difficulty == 'ENDLESS':
+                        endless_score = player_score
+                        print(endless_score)
                     state = 'MENU'
-                    current_difficulty = 'None'
-                    if bot_score < player_score and player_score - bot_score >= 5:
-                        player_win_counts += 1
+                    if bot_score < player_score and player_score - bot_score >= 10:
+                        if current_difficulty == 'ENDLESS':
+                            exp_counter('ENDLESS WIN')
+                            player_win_counts += 1
+                        else:
+                            player_win_counts += 1
                     elif bot_score > player_score and bot_score - player_score >= 5:
                         bot_win_counts += 1
                     bot_score = 0
                     player_score = 0
                     adapt_chance = 0
                     computer.reset()
+                    current_difficulty = 'None'
                 if buttons[3].collidepoint(mouse_pos):
                     current_bg_idx = (current_bg_idx + 1) % len(colors)
                 if vol_on_rect.collidepoint(mouse_pos) or vol_off_rect.collidepoint(mouse_pos):
                     current_volume = not current_volume
-                    if current_volume:
-                        bg_music.set_volume(0.5)
-                    else:
-                        bg_music.set_volume(0)
                 if buttons[6].collidepoint(mouse_pos):
-                    bot_win_counts = player_win_counts = 0
+                    bot_win_counts = player_win_counts = high_score = current_bg_idx = exp = exp_display = 0
+                    exp_required = 150
+                    current_volume = True
+                    level = 1
+            if event.type == py.KEYDOWN:
+                if event.key == py.K_g:
+                    if level > 1 and not armored:
+                        armored = True
+                        exp = 0
+                        level -= 1
+                        exp_display = 0
+                        exp_required = 150 * level
+                        print('Armor Activated.')
         # END STATE LOGIC
         if state == 'END':
             if event.type == py.MOUSEBUTTONDOWN:
@@ -574,12 +715,12 @@ while playing:
                     current_bg_idx = (current_bg_idx + 1) % len(colors)
                 if vol_on_rect.collidepoint(mouse_pos) or vol_off_rect.collidepoint(mouse_pos):
                     current_volume = not current_volume
-                    if current_volume:
-                        bg_music.set_volume(0.5)
-                    else:
-                        bg_music.set_volume(0)
                 if buttons[6].collidepoint(mouse_pos):
-                    bot_win_counts = player_win_counts = 0
+                    bot_win_counts = player_win_counts = high_score = current_bg_idx = exp = exp_display = 0
+                    current_volume = True
+                    exp_required = 150
+                    level = 1
+                    state = 'MENU'
     screen.fill(colors[current_bg_idx])  # Screen refresh
 
     if state == 'MENU':
@@ -600,11 +741,16 @@ while playing:
         display_text()
         draw_volume()
         reset()
+        exp_bar('GAME')
         if not current_difficulty == 'ENDLESS':
-            if player_score >= 1:  # 20 to win
+            if player_score >= 20:  # 20 to win
                 state = 'END'
                 end_state(True)
-            elif bot_score >= 1:
+                if current_difficulty == 'EASY':
+                    exp_counter('EASY WIN')
+                else:
+                    exp_counter('HARD WIN')
+            elif bot_score >= 20:
                 state = 'END'
                 end_state(False)
     elif state == 'END':
