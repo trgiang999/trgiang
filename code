@@ -1,0 +1,1370 @@
+import pygame as py
+import sys
+import random
+import json
+import perks as perk_module
+from translation import t_name, t_desc
+
+CONFIG_FILE = "config.json"
+
+# Archivable Data
+TOGGLE_MUSIC = False
+TOGGLE_SFX = False
+TOGGLE_FIREWORKS = False
+TOGGLE_DARK_SCREEN = False
+TOGGLE_FPS = False
+TOGGLE_PLAYER_MARK = False
+SPEED_DISPLAY = False
+DARK_MODE = False
+P1_SKIN = 'Yellow'
+P2_SKIN = 'Green'
+try:
+    with open('Save.txt', 'x', encoding='utf-8') as file:
+        file.write(f'{TOGGLE_MUSIC}\n'
+                   f'{TOGGLE_SFX}\n'
+                   f'{TOGGLE_FIREWORKS}\n'
+                   f'{TOGGLE_DARK_SCREEN}\n'
+                   f'{TOGGLE_FPS}\n'
+                   f'{TOGGLE_PLAYER_MARK}\n'
+                   f'{SPEED_DISPLAY}\n'
+                   f'{DARK_MODE}\n'
+                   f'{P1_SKIN}\n'
+                   f'{P2_SKIN}\n')
+except FileExistsError:
+    with open('Save.txt', 'r', encoding='utf-8') as file:
+        lines = [line.strip() for line in file.readlines()]
+        if len(lines) > 0:
+            TOGGLE_MUSIC = lines[0] == 'True'
+        if len(lines) > 1:
+            TOGGLE_SFX = lines[1] == 'True'
+        if len(lines) > 2:
+            TOGGLE_FIREWORKS = lines[2] == 'True'
+        if len(lines) > 3:
+            TOGGLE_DARK_SCREEN = lines[3] == 'True'
+        if len(lines) > 4:
+            TOGGLE_FPS = lines[4] == 'True'
+        if len(lines) > 5:
+            TOGGLE_PLAYER_MARK = lines[5] == 'True'
+        if len(lines) > 6:
+            SPEED_DISPLAY = lines[6] == 'True'
+        if len(lines) > 7:
+            DARK_MODE = lines[7] == 'True'
+        if len(lines) > 8:
+            P1_SKIN = lines[8].strip()
+            P2_SKIN = lines[9].strip()
+
+
+def load_config():
+    try:
+        with open(CONFIG_FILE, 'x', encoding='utf-8') as file:
+            json.dump({
+                'save_list': ['Default'],
+                'saved_color_list': [(0, 166, 82)]
+            }, file)
+    except FileExistsError:
+        try:
+            with open(CONFIG_FILE, "r") as f:
+                data = json.load(f)
+            save_list = data.get("save_list", [
+                'Default'])  # Ở đây nếu không có save_list trong file json thì mặc định thành ['Default']
+            saved_color_list = [tuple(x) for x in data.get("saved_color_list", [(0, 166, 82)])]  # Tg tự với ở trên
+            print("Đã load config:", save_list, saved_color_list)
+            return save_list, saved_color_list
+        except Exception as e:
+            print("Lỗi khi load config:", e)
+
+
+def save_config(save_list, saved_color_list):
+    try:
+        with open(CONFIG_FILE, "w") as f:
+            json.dump({
+                "save_list": save_list,
+                "saved_color_list": saved_color_list
+            }, f)
+        print("Đã lưu config:", save_list, saved_color_list)
+    except Exception as e:
+        print("Lỗi khi lưu config:", e)
+
+
+py.init()
+save_list, saved_color_list = load_config()
+state = 'MENU'
+DIFFICULTY = 'MEDIUM'
+
+# SCREEN SETUP
+screen = py.display.set_mode((900, 680))
+GAME_ICON = py.image.load('Resources/Yellow.png')
+py.display.set_caption('Dragon Boat Race')
+py.display.set_icon(GAME_ICON)
+
+# IN GAME RESOURCES
+BACKGROUND = py.image.load('Resources/HoTay.jpg')
+BARRIER = py.image.load('Resources/Phao.png')
+WAVE = py.image.load('Resources/water.png')
+ROCK_IMG = py.transform.scale(py.image.load('Resources/rocks.svg'), (60, 30))
+PLAYER_1 = py.transform.scale(GAME_ICON, (120, 50))
+PLAYER_2 = py.transform.scale(py.image.load('Resources/Green.png'), (120, 50))
+ENERGY_BALL = py.transform.scale(py.image.load('Resources/NangLuong.png'), (40, 40))
+FIREWORK_IMG = py.image.load('Resources/firework_combined.png')
+PROGRESS_BAR = py.transform.scale(py.image.load('Resources/bar.png'), (400, 50))
+YELLOW_BALL = py.transform.scale(py.image.load('Resources/yellow_ball.png'), (25, 25))
+GREEN_BALL = py.transform.scale(py.image.load('Resources/green_ball.png'), (25, 25))
+
+# SUB SETTINGS RESOURCES
+TRASH_BIN = py.transform.scale(py.image.load('Resources/trashbin.png'), (50, 50))
+TRIANGLE = py.image.load('Resources/triangle.png')
+TRIANGLE2 = py.image.load('Resources/triangle2.png')
+TRIANGLE3 = py.image.load('Resources/triangle3.png')
+TRIANGLE4 = py.image.load('Resources/triangle4.png')
+WINNER = py.font.SysFont('Forte', 80, False)
+
+# SETTING RESOURCES
+REPLAY_VI = py.transform.scale(py.image.load('Resources/Setting/play_again.png'), (230, 100)).convert_alpha()
+REPLAY_EN = py.transform.scale(py.image.load('Resources/Setting/play_again_en.png'), (230, 100)).convert_alpha()
+PLAY_VI = py.transform.scale(py.image.load('Resources/Setting/play.png'), (230, 100)).convert_alpha()
+PLAY_EN = py.transform.scale(py.image.load('Resources/Setting/play_en.png'), (230, 100)).convert_alpha()
+SETTING_VI = py.transform.scale(py.image.load('Resources/Setting/set_vi.png'), (230, 100)).convert_alpha()
+SETTING_EN = py.transform.scale(py.image.load('Resources/Setting/set_en.png'), (230, 100)).convert_alpha()
+SETTING_MENU_VI = py.image.load('Resources/Setting/bg_set_vn_no_bg.png')
+SETTING_MENU_EN = py.image.load('Resources/Setting/bg_set_en_no_bg.png')
+MENU_BG_VI = py.image.load('Resources/bg1_vn_no_bg.png')
+MENU_BG_EN = py.image.load('Resources/bg1_en_no_bg.png')
+CLOSE = py.transform.scale(py.image.load('Resources/Setting/close.png'), (100, 100))
+IDX_1 = py.transform.scale(py.image.load('Resources/Setting/1.png'), (150, 50))
+IDX_2 = py.transform.scale(py.image.load('Resources/Setting/2.png'), (150, 50))
+IDX_3 = py.transform.scale(py.image.load('Resources/Setting/3.png'), (150, 50))
+TOGGLE_ON_VI = py.transform.scale(py.image.load('Resources/Setting/on_vn.png'), (175, 75))
+TOGGLE_OFF_VI = py.transform.scale(py.image.load('Resources/Setting/off_vn.png'), (175, 75))
+TOGGLE_ON_EN = py.transform.scale(py.image.load('Resources/Setting/on_en.png'), (175, 75))
+TOGGLE_OFF_EN = py.transform.scale(py.image.load('Resources/Setting/off_en.png'), (175, 75))
+
+# PLAYER SETTINGS:
+YELLOW_SHIP = py.transform.scale(py.image.load('Resources/Yellow.png'), (200, 80))
+GREEN_SHIP = py.transform.scale(py.image.load('Resources/Green.png'), (200, 80))
+
+# BOUNDING BOX
+PLAY_BOX = py.Rect(220, 405, 170, 50)
+SETTING_BOX = py.Rect(520, 405, 170, 50)
+REPLAY_BOX = py.Rect(350, 350, 170, 50)
+CLOSE_BOX = py.Rect(850, 0, 50, 55)
+TRASH_BOX = py.Rect(600, 400, 50, 50)
+TRIANGLE_BOX = py.Rect(350, 120, 50, 40)
+TRIANGLE_BOX2 = py.Rect(350, 470, 50, 40)
+TRIANGLE_BOX3 = py.Rect(800, 100, 50, 40)
+TRIANGLE_BOX4 = py.Rect(800, 450, 50, 40)
+# TRANSPARENCY/HOVERING EFFECT
+PLAY_TRANSPARENCY = 255
+SETTING_TRANSPARENCY = 255
+REPLAY_TRANSPARENCY = 255
+CLOSE_TRANSPARENCY = 255
+TRASH_TRANSPARENCY = 255
+TRIANGLE_TRANSPARENCY = TRIANGLE2_TRANSPARENCY = TRIANGLE3_TRANSPARENCY = TRIANGLE4_TRANSPARENCY = 255
+# POSITION
+ENERGY_PLAYER1 = ENERGY_PLAYER2 = 0
+X_BG = 0
+Y_1 = 250
+Y_2 = 500
+X_WAVE_1 = X_WAVE_2 = 0
+SPEED_1 = SPEED_2 = 5
+ROCKS = []
+FIREWORKS = []
+X_YELLOW_BALL = X_GREEN_BALL = 250
+COUNT = 0
+
+# ENERGY BALL'S CONFIGURATION
+X_POWER_1 = X_POWER_2 = 900
+Y_POWER_1 = random.randint(130, 350)
+Y_POWER_2 = random.randint(430, 620)
+ENERGY_VISIBLE_1 = True
+ENERGY_VISIBLE_2 = True
+ENERGY_TIMER_1 = 0
+ENERGY_TIMER_2 = 0
+ENERGY_RESPAWN_TIME = 6000
+
+
+class Slider:
+    def __init__(self, x, y, w, h, value=0.5, min_val=0, max_val=1, knob_radius=14, offset=90, integer=False):
+        self.x = x
+        self.y = y
+        self.w = w
+        self.h = h
+        self.offset = offset
+        self.value = value
+        self.min_val = min_val
+        self.max_val = max_val
+        self.knob_radius = knob_radius
+        self.dragging = False
+        self.integer = integer
+
+    def handle_event(self, event):
+        if event.type == py.MOUSEBUTTONDOWN and event.button == 1:
+            mouse_x, mouse_y = event.pos
+            knob_x = self.x + (self.value - self.min_val) / (
+                    self.max_val - self.min_val) * self.w  # Tính vị trí ngang của nút trượt
+            if (mouse_x - knob_x) ** 2 + (
+                    mouse_y - self.y) ** 2 <= self.knob_radius ** 2:  # Dùng công thức tính tọa độ của chuột có nằm trong bán kính của knob không
+                self.dragging = True
+            elif self.x <= mouse_x <= self.x + self.w and (self.y - self.h // 2) <= mouse_y <= (
+                    self.y + self.h // 2):  # Khi bấm chuột trong thanh truợt
+                self.value = (mouse_x - self.x) / self.w * (
+                        self.max_val - self.min_val) + self.min_val  # Tính giá trị từ vị trí chuột
+                self.value = max(self.min_val, min(self.max_val,
+                                                   self.value))  # Giới hạn lại giá trị để đảm bảo không bé hơn min_val và không lớn hơn max_val (Clamp)
+                self.dragging = True
+
+        elif event.type == py.MOUSEBUTTONUP and event.button == 1:
+            self.dragging = False  # Ngừng kéo knob
+
+        elif event.type == py.MOUSEMOTION and self.dragging:  # Xử lí khi kéo knob
+            mouse_x, _ = event.pos  # Lấy x của chuột
+            mouse_x = max(self.x, min(self.x + self.w, mouse_x))  # Giới hạn mouse_x để knob không bị trượt ra ngoài
+            self.value = (mouse_x - self.x) / self.w * (
+                    self.max_val - self.min_val) + self.min_val  # Tính giá trị từ vị trí của chuột y như ở trên
+            self.value = max(self.min_val, min(self.max_val, self.value))  # Clamp
+
+    def draw(self, surface, font, label, dark_mode=False):
+        track_rect = py.Rect(self.x, self.y - self.h // 2, self.w, self.h)
+        py.draw.rect(surface, (180, 180, 180), track_rect, border_radius=10)
+        ratio = (self.value - self.min_val) / (self.max_val - self.min_val)
+        fill_width = self.w * ratio
+        fill_rect = py.Rect(self.x, self.y - self.h // 2, fill_width, self.h)
+        py.draw.rect(surface, (50, 120, 255), fill_rect, border_radius=10)
+        knob_x = self.x + ratio * self.w
+        knob_color = (100, 150, 255) if self.dragging else (50, 120, 255)
+        py.draw.circle(surface, knob_color, (int(knob_x), self.y), self.knob_radius)
+        display_percent = int(ratio * 100)
+        if not self.integer:  # Cho thêm 1 lựa chọn là sử dụng % hay giá trị thô
+            text_surface = font.render(f"{label}: {display_percent}%", True,
+                                       (255, 255, 255) if dark_mode else (0, 0, 0))
+        else:
+            text_surface = font.render(f"{label}: {int(self.value)}", True, (255, 255, 255) if dark_mode else (0, 0, 0))
+        text_rect = text_surface.get_rect()
+        text_rect.centerx = self.x + self.w // 2
+        text_rect.y = self.y + self.offset
+        surface.blit(text_surface, text_rect)
+
+
+class InputBox:
+    def __init__(self, x, y, w, h, text='', min_val=0, max_val=100, multiplier=1.0, num_val=True, lost_focus=False):
+        self.rect = py.Rect(x, y, w, h)
+        self.color_inactive = (100, 100, 100)
+        self.color_active = (0, 0, 255)
+        self.BG_COLOR = self.color_inactive
+        self.text = text
+        self.font = py.font.SysFont('Arial', 25)
+        self.active = False
+        self.min_val = min_val
+        self.max_val = max_val
+        self.multiplier = multiplier
+        self.num_val = num_val
+        self.lost_focus = lost_focus
+
+    def _sync_live(self, slider):
+        if not self.num_val:
+            return  # Nếu là chế độ text (num_val=False) thì không cần đồng bộ slider
+        if self.text == '':  # Nếu không có gì trong input
+            if slider:  # Nếu đang kéo slider
+                slider.value = (self.min_val / self.max_val) * self.multiplier  # Đồng bộ hóa giá trị của slider
+            return  # Trả về kết quả và ngừng xử lí
+        try:
+            val = int(self.text)  # Thử đặt giá trị thành số nguyên của string được hiện trên màn hình
+        except ValueError:
+            return  # Ngừng xử lí nếu giá trị quá lớn hoặc không đúng loại giá trị
+        val = max(self.min_val, min(self.max_val, val))  # Clamp
+        if slider:
+            slider.value = (val / self.max_val) * self.multiplier
+
+    def handle_event(self, event, slider=None):
+        if event.type == py.MOUSEBUTTONDOWN and event.button == 1:
+            self.active = self.rect.collidepoint(
+                event.pos)  # Đặt giá trị của InputBox là True hoặc False, tùy thuộc nếu nhấn chuột có nhấn vào InputBox hay không
+            if self.active and self.lost_focus:
+                self.text = ''
+            self.BG_COLOR = self.color_active if self.active else self.color_inactive  # Chỉnh sửa màu viền của InputBox tùy vào trạng thái
+        if not self.active:  # Nếu không được chọn thì thoát hàm có chủ đích. (Nếu self.active ở trên là True thì sẽ không thỏa mãn điều kiện, dẫn đến tiếp tục xử lí.)
+            return
+        if event.type == py.KEYDOWN:
+            if event.key == py.K_BACKSPACE:  # Xóa
+                self.text = self.text[:-1]
+                if self.num_val:
+                    self._sync_live(slider)  # Đồng bộ hóa với slider
+                return
+            if event.key == py.K_DELETE:  # Xóa toàn bộ
+                self.text = ''
+                if self.num_val:
+                    self._sync_live(slider)
+                return
+            if event.key == py.K_RETURN:  # Enter
+                self.active = False
+                self.BG_COLOR = self.color_inactive
+                return
+
+            # Xử lí nhập liệu phụ thuộc vào num_val
+            if self.num_val:  # ----> Nếu num_val=True thì chỉ cho nhập số
+                if event.unicode and event.unicode.isdigit():  # Xử lí xem đầu vào có phải là chữ số không
+                    if len(self.text) < len(
+                            str(self.max_val)):  # Nếu độ dài giá trị bên trong vẫn chưa bằng giá trị tối đa
+                        self.text += event.unicode  # Thêm kí tự
+                        try:
+                            if int(self.text) > self.max_val:  # Nếu lớn hơn giá trị tối đa
+                                self.text = str(self.max_val)  # Đặt về giá trị tối đa
+                        except ValueError:  # Nếu giá trị quá lớn thì bỏ qua
+                            pass
+                        self._sync_live(slider)  # Sync
+            else:  # Cho nhập bất kì kí tự nào
+                if event.unicode:
+                    if len(self.text) < 10:
+                        self.text += event.unicode  # Không giới hạn, thêm bất kỳ kí tự nào người dùng nhập
+
+    def draw(self, surface):
+        py.draw.rect(surface, (255, 255, 255), self.rect, border_radius=8)
+        py.draw.rect(surface, self.BG_COLOR, self.rect, 2, border_radius=8)
+        txt_surface = self.font.render(
+            self.text if self.text != '' else (str(self.min_val) if self.num_val else ''),
+            # Nếu là số thì hiển thị min_val mặc định, còn text thì để trống
+            True, (0, 0, 0))
+        text_rect = txt_surface.get_rect(center=self.rect.center)
+        surface.blit(txt_surface, text_rect)
+
+
+class Dropdown:
+    def __init__(self, x, y, w, h, options, default_value, font, max_visible_items=5):
+        self.rect = py.Rect(x, y, w, h)
+        self.options = options
+        self.max_visible_items = max_visible_items  # Maximum number of visible items
+        self.scroll_offset = 0  # Current scroll position (in items)
+        if isinstance(default_value, str):
+            if default_value in self.options:
+                self.selected_index = self.options.index(
+                    default_value)  # Nếu lựa chọn mặc định đã có sẵn trong ds thì lấy index
+            else:
+                self.selected_index = 0  # Nếu ko thì lấy gtr đầu tiên
+        else:
+            if 0 <= default_value < len(self.options):
+                self.selected_index = default_value  # Nếu list đủ dài để lấy giá trị mặc định là số nguyên thì lấy luôn
+            else:
+                self.selected_index = 0  # Không thì lấy gtr đầu tiên như ở trên  <<Cách xử lí này còn gọi là Fallback>>
+
+        self.is_open = False
+        self.font = font
+        self.hover_index = -1
+
+    def handle_event(self, event):
+        if event.type == py.MOUSEBUTTONDOWN and event.button == 1:  # Nếu nhấn chuột trái
+            mouse_pos = event.pos  # Lấy tọa độ chuột
+            if self.rect.collidepoint(mouse_pos):  # Nếu bấm vào dropdown
+                play_sfx()
+                self.is_open = not self.is_open
+            elif self.is_open:  # Nếu đang mở thì:
+                # Chỉ kiểm tra trong vùng hiển thị (scroll_offset → scroll_offset + max_visible_items)
+                for i in range(self.scroll_offset, min(self.scroll_offset + self.max_visible_items, len(self.options))):
+                    option_rect = py.Rect(
+                        self.rect.x,
+                        self.rect.y + (i - self.scroll_offset + 1) * self.rect.h,
+                        self.rect.w,
+                        self.rect.h
+                    )
+                    if option_rect.collidepoint(mouse_pos):  # Nếu bấm vào 1 lựa chọn
+                        play_sfx()
+                        self.selected_index = i  # Đặt index thành i
+                        self.is_open = False  # Đóng dropdown
+                        break
+                else:
+                    self.is_open = False  # Nếu click ngoài thì đóng
+
+        elif event.type == py.MOUSEWHEEL and self.is_open:
+            # Xử lý scroll bằng chuột
+            if len(self.options) > self.max_visible_items:
+                self.scroll_offset = max(0,
+                                         min(self.scroll_offset - event.y, len(self.options) - self.max_visible_items))
+        self.update_hover(py.mouse.get_pos())
+
+    def update_hover(self, mouse_pos):
+        if self.is_open:  # Nếu dropdown đang mở thì mới kiểm tra
+            self.hover_index = -1  # Không di vào gì
+            # Chỉ xử lí những thứ đang hiện trên mh
+            for i in range(self.scroll_offset, min(self.scroll_offset + self.max_visible_items, len(self.options))):
+                # Xác định rect của các lựa chọn đang hiện
+                option_rect = py.Rect(
+                    self.rect.x,
+                    self.rect.y + (i - self.scroll_offset + 1) * self.rect.h,
+                    self.rect.w,
+                    self.rect.h
+                )
+                if option_rect.collidepoint(mouse_pos):  # Nếu di chuột vào
+                    self.hover_index = i  # Đặt luôn hover_index thành i (Tức lựa chọn được di vào)
+                    break  # Ngừng kt khi item đã được hover rồi
+
+    def draw(self, surface):
+        BG_COLOR = (45, 45, 45)
+        BORDER_COLOR = (180, 180, 180)
+        TEXT_COLOR = (255, 255, 255)
+        ARROW_COLOR = (220, 220, 220)
+        HOVER_COLOR = (65, 105, 225)
+        ITEM_BG_COLOR = (55, 55, 55)
+        py.draw.rect(surface, BG_COLOR, self.rect, border_radius=6)
+        py.draw.rect(surface, BORDER_COLOR, self.rect, 2, border_radius=6)
+        selected_text = self.options[self.selected_index]
+        text_surface = self.font.render(selected_text, True, TEXT_COLOR)
+        text_rect = text_surface.get_rect(x=self.rect.x + 10, centery=self.rect.centery)
+        surface.blit(text_surface, text_rect)
+        center_x = self.rect.right - 15
+        center_y = self.rect.centery
+        if self.is_open:
+            points = [(center_x - 6, center_y - 3), (center_x + 6, center_y - 3),
+                      (center_x, center_y + 4)]  # Lấy 3 cạnh của TGC
+        else:
+            points = [(center_x - 6, center_y + 3), (center_x + 6, center_y + 3),
+                      (center_x, center_y - 4)]  # Lấy 3 cạnh của TGC
+        py.draw.polygon(surface, ARROW_COLOR, points)  # Vẽ hình TGC
+        if self.is_open:
+            # Lặp qua danh sách options nhưng chỉ lấy những option trong khoảng cho phép (tùy theo scroll_offset và số item hiển thị tối đa)
+            for i in range(self.scroll_offset, min(self.scroll_offset + self.max_visible_items, len(self.options))):
+                # Rect của lựa chọn (tính lại vị trí Y dựa trên i - self.scroll_offset để item luôn vẽ đúng vị trí trong khung dropdown)
+                option_rect = py.Rect(
+                    self.rect.x,
+                    self.rect.y + (i - self.scroll_offset + 1) * self.rect.h,
+                    # Dời xuống dưới khung chính, trừ scroll_offset để giữ đúng thứ tự hiển thị
+                    self.rect.w,
+                    self.rect.h
+                )
+                # Đặt màu nền: nếu đang di chuột vào item thì dùng HOVER_COLOR, ngược lại dùng ITEM_BG_COLOR
+                bg_color = HOVER_COLOR if i == self.hover_index else ITEM_BG_COLOR
+                py.draw.rect(surface, bg_color, option_rect, border_radius=4)  # Vẽ màu nền
+                py.draw.rect(surface, BORDER_COLOR, option_rect, 1, border_radius=4)  # Vẽ outline viền cho option
+
+                # Biến text để vẽ lên (nội dung chính là self.options[i])
+                text_surface = self.font.render(self.options[i], True, TEXT_COLOR)
+                # Rect của text: đặt text lệch 10px từ trái, và căn giữa theo chiều cao của option_rect
+                text_rect = text_surface.get_rect(x=option_rect.x + 10, centery=option_rect.centery)
+                surface.blit(text_surface, text_rect)  # Vẽ text lên màn hình
+
+
+BG_COLOR = (0, 166, 82)
+colors = [
+    BG_COLOR,  # [0] Default Green
+    (51, 255, 51),  # [1] Green
+    (51, 255, 255),  # [2] Sky blue
+    (255, 0, 0),  # [3] Red
+    (255, 255, 0),  # [4] Yellow
+    (255, 128, 0),  # [5] Orange
+    (255, 255, 255),  # [6] White
+    (0, 0, 0),  # [7] Black
+    (102, 255, 102),  # [8] Light Green
+    (153, 0, 153),  # [9] Purple
+    (30, 30, 30),  # [10] Dark
+]
+# SETTING SLIDER + INPUT
+volume_slider = Slider(225, 300, 150, 20, value=0.5, min_val=0, max_val=1, knob_radius=14)
+volume_input = InputBox(270, 340, 60, 40, text='50')
+
+# ADV SETTING SLIDER + INPUT
+dark_slider = Slider(225, 550, 150, 20, value=0.5, min_val=0, max_val=255, knob_radius=14)
+dark_input = InputBox(270, 590, 60, 40, text='0', min_val=0, max_val=255, multiplier=255)
+firework_slider = Slider(430, 550, 150, 20, value=0.1, min_val=0, max_val=50, knob_radius=14, integer=True)
+firework_input = InputBox(475, 590, 60, 40, text='10', min_val=0, max_val=50, multiplier=50)
+sfx_slider = Slider(620, 550, 150, 20, value=1, min_val=0, max_val=1, knob_radius=14)
+sfx_input = InputBox(665, 590, 60, 40, text='100', min_val=0, max_val=100, multiplier=1)
+
+# VISUAL SETTINGS SLIDER + INPUT
+red_slider = Slider(100, 100, 250, 20, value=0, min_val=0, max_val=255, knob_radius=14, integer=True, offset=50)
+green_slider = Slider(100, 200, 250, 20, value=166, min_val=0, max_val=255, knob_radius=14, integer=True, offset=50)
+blue_slider = Slider(100, 300, 250, 20, value=82, min_val=0, max_val=255, knob_radius=14, integer=True, offset=50)
+red_input = InputBox(400, 100, 60, 40, text='0', min_val=0, max_val=255, multiplier=255)
+green_input = InputBox(400, 200, 60, 40, text='166', min_val=0, max_val=255, multiplier=255)
+blue_input = InputBox(400, 300, 60, 40, text='82', min_val=0, max_val=255, multiplier=255)
+
+save_input = InputBox(325, 400, 250, 50, text='', num_val=False, lost_focus=True)
+# DROPDOWN CONFIG
+font = py.font.SysFont('Arial', 25)
+language_dropdown = Dropdown(390, 300, 150, 40, ['ENGLISH', 'T. Việt'], 'ENGLISH', font)
+difficulty_dropdown = Dropdown(550, 300, 150, 40, [
+                                                                'EASY', 'MEDIUM', 'HARD', 'INSANE', 'EXTREME'
+                                                            ], 'MEDIUM', font)
+color_dropdown = Dropdown(700, 150, 170, 40, [
+                                                            'Default', 'Green', 'Sky blue',
+                                                            'Red', 'Yellow', 'Orange', 'White',
+                                                            'Black', 'Light green', 'Purple', 'Custom'
+                                                        ], 'Default', font)
+saved_color_dropdown = Dropdown(500, 150, 170, 40, ['Default'], 'Default', font)
+
+clock = py.time.Clock()
+
+# SOUNDS
+BG_MUSIC = py.mixer.Sound('Resources/nhacnen.mp3')
+GAME_MUSIC = py.mixer.Sound('Resources/nhacnen1.mp3')
+ENERGY_BALL_SOUND = py.mixer.Sound('Resources/power_sound.wav')
+ROCK_SOUND = py.mixer.Sound('Resources/rock_sound.wav')
+CLICK_SFX = py.mixer.Sound('Resources/ButtonPlate Click.wav')
+
+BG_MUSIC.play(-1)
+
+# DISTANCE TRACKING
+DISTANCE_1 = 0
+DISTANCE_2 = 0
+FINISH_LINE_WORLD_X = 40000
+FINISH_LINE = py.transform.scale(py.image.load('Resources/finish_line.png'), (200, 265))
+
+# PERKS
+current_p1_perk_idx = 0
+current_p2_perk_idx = 0
+
+
+def spawn_rock(NUM, TEAM):
+    for _ in range(NUM):
+        while True:
+            if TEAM == 1:
+                ROCK_X = random.randint(700, 900)
+                ROCK_Y = random.randint(130, 350)
+            else:
+                ROCK_X = random.randint(700, 900)
+                ROCK_Y = random.randint(430, 620)
+            new_rock_rect = ROCK_IMG.get_rect(topleft=(ROCK_X, ROCK_Y))
+            collision = False
+            for existing_rock in ROCKS:
+                existing_rock_rect = ROCK_IMG.get_rect(topleft=(existing_rock[0], existing_rock[1]))
+                if new_rock_rect.colliderect(existing_rock_rect):
+                    collision = True
+                    break
+            if not collision:
+                ROCKS.append([ROCK_X, ROCK_Y])
+                break
+
+
+def check_collision():
+    global SPEED_1, SPEED_2
+    global X_POWER_1, X_POWER_2, Y_POWER_1, Y_POWER_2
+    global ENERGY_VISIBLE_1, ENERGY_VISIBLE_2, ENERGY_TIMER_1, ENERGY_TIMER_2
+    global ENERGY_PLAYER1, ENERGY_PLAYER2
+    P1_HITBOX = PLAYER_1.get_rect(topleft=(0, Y_1))
+    P2_HITBOX = PLAYER_2.get_rect(topleft=(0, Y_2))
+    for ROCK in ROCKS:
+        ROCK_COLLIDE_BOX = ROCK_IMG.get_rect(topleft=(ROCK[0], ROCK[1]))
+        if P1_HITBOX.colliderect(ROCK_COLLIDE_BOX):
+            ROCK[0] = -100
+            if TOGGLE_SFX:
+                ROCK_SOUND.play(0)
+            SPEED_1 = max(1, SPEED_1 - 2)
+        if P2_HITBOX.colliderect(ROCK_COLLIDE_BOX):
+            ROCK[0] = -100
+            if TOGGLE_SFX:
+                ROCK_SOUND.play(0)
+            SPEED_2 = max(1, SPEED_2 - 2)
+    if ENERGY_VISIBLE_1:
+        BALL_COLLISION_1 = ENERGY_BALL.get_rect(topleft=(X_POWER_1, Y_POWER_1))
+        if P1_HITBOX.colliderect(BALL_COLLISION_1):
+            ENERGY_PLAYER1 += 20
+            ENERGY_VISIBLE_1 = False
+            ENERGY_TIMER_1 = py.time.get_ticks()
+            if TOGGLE_SFX:
+                ENERGY_BALL_SOUND.play(0)
+    if ENERGY_VISIBLE_2:
+        BALL_COLLISION_2 = ENERGY_BALL.get_rect(topleft=(X_POWER_2, Y_POWER_2))
+        if P2_HITBOX.colliderect(BALL_COLLISION_2):
+            ENERGY_PLAYER2 += 2
+            ENERGY_VISIBLE_2 = False
+            ENERGY_TIMER_2 = py.time.get_ticks()
+            if TOGGLE_SFX:
+                ENERGY_BALL_SOUND.play(0)
+
+
+def firework_spawner(NUM):
+    for _ in range(NUM):
+        X_POSITION = random.randint(200, 700)
+        Y_POSITION = random.randint(600, 900)
+        FIREWORK_SPEED = random.randint(5, 10)
+        MAXIMUM_Y = random.randint(150, 250)
+        FIREWORKS.append([X_POSITION, Y_POSITION, FIREWORK_SPEED, MAXIMUM_Y])
+
+
+def update_fireworks():
+    global FIREWORKS
+    new_fireworks = []
+    for FIREWORK in FIREWORKS:
+        FIREWORK[1] -= FIREWORK[2]
+        screen.blit(FIREWORK_IMG, (FIREWORK[0], FIREWORK[1]))
+        if FIREWORK[1] > FIREWORK[3]:
+            new_fireworks.append(FIREWORK)
+    FIREWORKS = new_fireworks
+
+
+WINNER_TEXT = None
+
+BUTTONS = [
+    py.Rect(0, 0, 300, 50),  # ADVANCED SETTTINGS
+    py.Rect(0, 200, 100, 100),  # BG COLOR
+    py.Rect(300, 500, 300, 50),  # Save Changes
+    py.Rect(0, 400, 100, 100),  # Player's Configuration
+    py.Rect(450, 0, 10, 900),  # Vertical Line
+    py.Rect(0, 340, 900, 10),  # Horizontal Line
+    py.Rect(460, 100, 440, 50),  # Current Perk's Back Layer
+    py.Rect(460, 450, 440, 50),  # Current Perk2's Back Layer
+    py.Rect(585, 150, 200, 100),  # Perk's Description
+    py.Rect(585, 500, 200, 100),  # Perk2's Description
+    py.Rect(460, 50, 440, 50),  # Perk Rect
+    py.Rect(460, 400, 440, 50),  # Perk2 Rect
+]
+
+
+def reset_game():
+    global X_BG, Y_1, Y_2, X_WAVE_1, X_WAVE_2
+    global SPEED_1, SPEED_2, ROCKS, FIREWORKS
+    global X_YELLOW_BALL, X_GREEN_BALL
+    global X_POWER_1, X_POWER_2, Y_POWER_1, Y_POWER_2
+    global ENERGY_VISIBLE_1, ENERGY_VISIBLE_2
+    global ENERGY_TIMER_1, ENERGY_TIMER_2
+    global WINNER_TEXT
+    global DISTANCE_1, DISTANCE_2
+    DISTANCE_1 = 0
+    DISTANCE_2 = 0
+    X_BG = 0
+    Y_1 = 250
+    Y_2 = 500
+    X_WAVE_1 = 0
+    X_WAVE_2 = 0
+    SPEED_1 = 5
+    SPEED_2 = 5
+    if TOGGLE_MUSIC:
+        BG_MUSIC.stop()
+        GAME_MUSIC.play(-1)
+    ROCKS = []
+    FIREWORKS = []
+    num_rocks = 0
+    if DIFFICULTY == 'EASY' or DIFFICULTY == 'DỄ':
+        num_rocks = 1
+    elif DIFFICULTY == 'MEDIUM' or DIFFICULTY == 'THƯỜNG':
+        num_rocks = 3
+    elif DIFFICULTY == 'HARD' or DIFFICULTY == 'KHÓ':
+        num_rocks = 5
+    elif DIFFICULTY == 'INSANE' or DIFFICULTY == 'ĐIÊN LOẠN':
+        num_rocks = 7
+    elif DIFFICULTY == 'EXTREME' or DIFFICULTY == 'CỰC KHÓ':
+        num_rocks = 9
+    spawn_rock(num_rocks, 1)
+    spawn_rock(num_rocks, 2)
+    X_YELLOW_BALL = 250
+    X_GREEN_BALL = 250
+    X_POWER_1 = 900
+    X_POWER_2 = 900
+    Y_POWER_1 = random.randint(130, 350)
+    Y_POWER_2 = random.randint(430, 620)
+    ENERGY_VISIBLE_1 = True
+    ENERGY_VISIBLE_2 = True
+    ENERGY_TIMER_1 = 0
+    ENERGY_TIMER_2 = 0
+    WINNER_TEXT = None
+
+
+def draw_toggle(x, y, status, text_en, text_vi, on_img_en, off_img_en, on_img_vi, off_img_vi):
+    text_to_render = text_vi if LANGUAGE == 'T. Việt' else text_en
+    text_surface = font.render(text_to_render, True, (0, 0, 0) if not DARK_MODE else (255, 255, 255))
+    text_rect = text_surface.get_rect(topleft=(x, y))
+    screen.blit(text_surface, text_rect)
+    img = on_img_en if status and LANGUAGE == 'ENGLISH' else off_img_en if not status and LANGUAGE == 'ENGLISH' else on_img_vi if status else off_img_vi
+    rect = img.get_rect(topleft=(x, y + 50))
+    screen.blit(img, rect)
+    return rect
+
+
+def display():
+    global TOGGLE_FPS, TOGGLE_DARK_SCREEN, CLOSE, CLOSE_BOX, state
+    if state != 'MENU':
+        screen.blit(CLOSE, CLOSE.get_rect(center=CLOSE_BOX.center))
+    if TOGGLE_FPS:
+        fps_text = font.render(f"FPS: {int(clock.get_fps())}", True, (255, 255, 255))
+        screen.blit(fps_text, (0, 350))
+    if TOGGLE_DARK_SCREEN:
+        dark_surface = py.Surface((900, 680))
+        dark_surface.fill((0, 0, 0))
+        dark_surface.set_alpha(int(dark_slider.value))
+        screen.blit(dark_surface, (0, 0))
+
+
+def lerp(c1, c2, a):
+    return tuple(int(c1[i] + (c2[i] - c1[i]) * a) for i in range(3))
+
+
+def play_sfx():
+    global TOGGLE_SFX
+    if TOGGLE_SFX:
+        CLICK_SFX.play(0)
+
+
+def render_text_wrapped(text, font, color, max_width):
+    words = text.split(' ')
+    lines = []
+    current_line = ""
+
+    for word in words:
+        test_line = current_line + (" " if current_line else "") + word
+        # render thử để đo chiều rộng
+        if font.size(test_line)[0] <= max_width:
+            current_line = test_line
+        else:
+            lines.append(current_line)
+            current_line = word
+    if current_line:
+        lines.append(current_line)
+
+    # render từng dòng
+    return [font.render(line, True, color) for line in lines]
+
+
+while True:
+    MOUSE_POS = py.mouse.get_pos()
+    if TOGGLE_MUSIC:
+        BG_MUSIC.set_volume(volume_slider.value)
+        GAME_MUSIC.set_volume(volume_slider.value)
+    else:
+        BG_MUSIC.set_volume(0)
+        GAME_MUSIC.set_volume(0)
+    if TOGGLE_SFX:
+        CLICK_SFX.set_volume(sfx_slider.value)
+        ROCK_SOUND.set_volume(sfx_slider.value)
+        ENERGY_BALL_SOUND.set_volume(sfx_slider.value)
+    else:
+        ROCK_SOUND.set_volume(0)
+        ENERGY_BALL_SOUND.set_volume(0)
+    CLOSE.set_alpha(CLOSE_TRANSPARENCY)
+    REPLAY_VI.set_alpha(REPLAY_TRANSPARENCY)
+    REPLAY_EN.set_alpha(REPLAY_TRANSPARENCY)
+    PLAY_EN.set_alpha(PLAY_TRANSPARENCY)
+    PLAY_VI.set_alpha(PLAY_TRANSPARENCY)
+    SETTING_VI.set_alpha(SETTING_TRANSPARENCY)
+    SETTING_EN.set_alpha(SETTING_TRANSPARENCY)
+    TRASH_BIN.set_alpha(TRASH_TRANSPARENCY)
+    TRIANGLE.set_alpha(TRIANGLE_TRANSPARENCY)
+    TRIANGLE2.set_alpha(TRIANGLE2_TRANSPARENCY)
+    TRIANGLE3.set_alpha(TRIANGLE3_TRANSPARENCY)
+    TRIANGLE4.set_alpha(TRIANGLE4_TRANSPARENCY)
+    LANGUAGE = language_dropdown.options[language_dropdown.selected_index]
+    lang_code = "EN" if LANGUAGE == "ENGLISH" else "VI"
+    perks_display = [t_name(p, lang_code) for p in perk_module.perks]
+    perks_desc = [t_desc(p, lang_code) for p in perk_module.perks]
+    all_perks = perk_module.perks
+    DIFFICULTY = difficulty_dropdown.options[difficulty_dropdown.selected_index]
+    color_choice = color_dropdown.options[color_dropdown.selected_index]
+    saved_color_choice = saved_color_dropdown.options[saved_color_dropdown.selected_index]
+    if color_choice == 'Custom' or color_choice == 'Tùy chỉnh':
+        BG_COLOR = (int(red_slider.value), int(green_slider.value), int(blue_slider.value))
+    elif color_choice == 'Rainbow' or color_choice == 'Cầu vồng':
+        speed = 1
+        t = (py.time.get_ticks() / 1000) % (len(colors) * speed)
+        index = int(t // speed)
+        next_index = (index + 1) % len(colors)
+        alpha = (t % speed) / speed
+        BG_COLOR = lerp(colors[index], colors[next_index], alpha)
+    else:
+        BG_COLOR = colors[color_dropdown.selected_index]
+    for event in py.event.get():
+        if event.type == py.QUIT:
+            save_config(save_list, saved_color_list)
+            with open('Save.txt', 'w', encoding='utf-8') as file:
+                file.write(f'{TOGGLE_MUSIC}\n'
+                           f'{TOGGLE_SFX}\n'
+                           f'{TOGGLE_FIREWORKS}\n'
+                           f'{TOGGLE_DARK_SCREEN}\n'
+                           f'{TOGGLE_FPS}\n'
+                           f'{TOGGLE_PLAYER_MARK}\n'
+                           f'{SPEED_DISPLAY}\n'
+                           f'{DARK_MODE}\n'
+                           f'{P1_SKIN}\n'
+                           f'{P2_SKIN}\n')
+            py.quit()
+            sys.exit()
+        if state == 'MENU':
+            if PLAY_BOX.collidepoint(MOUSE_POS):
+                PLAY_TRANSPARENCY = 150
+                if event.type == py.MOUSEBUTTONDOWN and event.button == 1:
+                    state = 'BASE'
+                    play_sfx()
+                    reset_game()
+            elif SETTING_BOX.collidepoint(MOUSE_POS):
+                SETTING_TRANSPARENCY = 150
+                if event.type == py.MOUSEBUTTONDOWN and event.button == 1:
+                    play_sfx()
+                    state = 'SETTINGS'
+            else:
+                PLAY_TRANSPARENCY = 255
+                SETTING_TRANSPARENCY = 255
+        elif state == 'SETTINGS':
+            if CLOSE_BOX.collidepoint(MOUSE_POS):
+                CLOSE_TRANSPARENCY = 150
+                if event.type == py.MOUSEBUTTONDOWN and event.button == 1:
+                    state = 'MENU'
+                    play_sfx()
+                    if TOGGLE_MUSIC:
+                        GAME_MUSIC.stop()
+            else:
+                CLOSE_TRANSPARENCY = 255
+            BUTTONS[0].centerx = screen.get_width() // 2
+            BUTTONS[0].y = 550
+            if BUTTONS[0].collidepoint(MOUSE_POS):
+                if event.type == py.MOUSEBUTTONDOWN and event.button == 1:
+                    state = 'ADV SETTINGS'
+                    play_sfx()
+            volume_slider.handle_event(event)
+            volume_input.handle_event(event, volume_slider)
+            volume_input.text = str(int(volume_slider.value * 100))
+            language_dropdown.handle_event(event)
+            difficulty_dropdown.handle_event(event)
+        elif state == 'ADV SETTINGS':
+            if CLOSE_BOX.collidepoint(MOUSE_POS):
+                CLOSE_TRANSPARENCY = 150
+                if event.type == py.MOUSEBUTTONDOWN and event.button == 1:
+                    state = 'SETTINGS'
+                    play_sfx()
+                    if TOGGLE_MUSIC:
+                        GAME_MUSIC.stop()
+            else:
+                CLOSE_TRANSPARENCY = 255
+            dark_slider.handle_event(event)
+            dark_input.handle_event(event, dark_slider)
+            dark_input.text = str(int(dark_slider.value))
+            firework_slider.handle_event(event)
+            firework_input.handle_event(event, firework_slider)
+            firework_input.text = str(int(firework_slider.value))
+            sfx_slider.handle_event(event)
+            sfx_input.handle_event(event, sfx_slider)
+            sfx_input.text = str(int(sfx_slider.value * 100))
+            if event.type == py.MOUSEBUTTONDOWN and event.button == 1:
+                mouse_x, mouse_y = event.pos
+                if draw_toggle(200, 100, TOGGLE_MUSIC, 'Music', 'Âm nhạc', TOGGLE_ON_EN, TOGGLE_OFF_EN, TOGGLE_ON_VI,
+                               TOGGLE_OFF_VI).collidepoint(mouse_x, mouse_y):
+                    TOGGLE_MUSIC = not TOGGLE_MUSIC
+                    play_sfx()
+                elif draw_toggle(200, 250, TOGGLE_SFX, 'Sound Effects', 'Hiệu ứng âm thanh', TOGGLE_ON_EN,
+                                 TOGGLE_OFF_EN, TOGGLE_ON_VI, TOGGLE_OFF_VI).collidepoint(mouse_x, mouse_y):
+                    TOGGLE_SFX = not TOGGLE_SFX
+                    play_sfx()
+                elif draw_toggle(200, 400, TOGGLE_FIREWORKS, 'Fireworks', 'Pháo hoa', TOGGLE_ON_EN, TOGGLE_OFF_EN,
+                                 TOGGLE_ON_VI, TOGGLE_OFF_VI).collidepoint(mouse_x, mouse_y):
+                    TOGGLE_FIREWORKS = not TOGGLE_FIREWORKS
+                    play_sfx()
+                elif draw_toggle(400, 100, SPEED_DISPLAY, 'Speed Display', 'Hiển thị tốc độ', TOGGLE_ON_EN,
+                                 TOGGLE_OFF_EN, TOGGLE_ON_VI, TOGGLE_OFF_VI).collidepoint(mouse_x, mouse_y):
+                    SPEED_DISPLAY = not SPEED_DISPLAY
+                    play_sfx()
+                elif draw_toggle(400, 250, DARK_MODE, 'Dark Mode', 'Chế độ tối', TOGGLE_ON_EN, TOGGLE_OFF_EN,
+                                 TOGGLE_ON_VI, TOGGLE_OFF_VI).collidepoint(mouse_x, mouse_y):
+                    DARK_MODE = not DARK_MODE
+                    play_sfx()
+                elif draw_toggle(600, 100, TOGGLE_DARK_SCREEN, 'Dark Screen', 'Nền tối', TOGGLE_ON_EN, TOGGLE_OFF_EN,
+                                 TOGGLE_ON_VI, TOGGLE_OFF_VI).collidepoint(mouse_x, mouse_y):
+                    TOGGLE_DARK_SCREEN = not TOGGLE_DARK_SCREEN
+                    play_sfx()
+                elif draw_toggle(600, 250, TOGGLE_FPS, 'Show FPS', 'Hiện FPS', TOGGLE_ON_EN, TOGGLE_OFF_EN,
+                                 TOGGLE_ON_VI, TOGGLE_OFF_VI).collidepoint(mouse_x, mouse_y):
+                    TOGGLE_FPS = not TOGGLE_FPS
+                    play_sfx()
+                elif draw_toggle(400, 400, TOGGLE_PLAYER_MARK, "Players' Mark", 'Đánh dấu N.chơi', TOGGLE_ON_EN,
+                                 TOGGLE_OFF_EN, TOGGLE_ON_VI, TOGGLE_OFF_VI).collidepoint(mouse_x, mouse_y):
+                    TOGGLE_PLAYER_MARK = not TOGGLE_PLAYER_MARK
+                    play_sfx()
+                elif BUTTONS[1].collidepoint(MOUSE_POS):
+                    state = 'VSETTINGS'
+                    play_sfx()
+                elif BUTTONS[3].collidepoint(MOUSE_POS):
+                    state = 'PSETTINGS'
+                    play_sfx()
+        elif state == 'VSETTINGS':
+            if CLOSE_BOX.collidepoint(MOUSE_POS):
+                CLOSE_TRANSPARENCY = 150
+                if event.type == py.MOUSEBUTTONDOWN and event.button == 1:
+                    state = 'ADV SETTINGS'
+                    play_sfx()
+                    if TOGGLE_MUSIC:
+                        GAME_MUSIC.stop()
+            else:
+                CLOSE_TRANSPARENCY = 255
+            red_slider.handle_event(event)
+            red_input.handle_event(event, red_slider)
+            red_input.text = str(int(red_slider.value))
+            green_slider.handle_event(event)
+            green_input.handle_event(event, green_slider)
+            green_input.text = str(int(green_slider.value))
+            blue_slider.handle_event(event)
+            blue_input.handle_event(event, blue_slider)
+            blue_input.text = str(int(blue_slider.value))
+            save_input.handle_event(event)
+            color_dropdown.handle_event(event)
+            saved_color_dropdown.handle_event(event)
+            saved_color_dropdown.options = save_list
+            if ((color_choice != 'Custom' and color_choice != 'Tùy chỉnh')
+                    and (color_choice != 'Rainbow' and color_choice != 'Cầu vồng')):
+                try:
+                    preset_color = colors[color_dropdown.selected_index]
+                    red_slider.value = preset_color[0]
+                    green_slider.value = preset_color[1]
+                    blue_slider.value = preset_color[2]
+                except IndexError:
+                    pass
+            else:
+                preset_color = None
+            if saved_color_choice != 'Default' and saved_color_choice != 'Mặc định':
+                try:
+                    saved_color_index = save_list.index(saved_color_choice)
+                    saved_color = saved_color_list[saved_color_index]
+                    red_slider.value = saved_color[0]
+                    green_slider.value = saved_color[1]
+                    blue_slider.value = saved_color[2]
+                    color_dropdown.selected_index = color_dropdown.options.index(
+                        'Custom' if LANGUAGE == 'ENGLISH' else 'Tùy chỉnh')
+                except (IndexError, ValueError):
+                    pass
+            if (color_choice == 'Black' or color_choice == 'Đen' or BG_COLOR == (0, 0, 0)
+                    or BG_COLOR == (30, 30, 30) or color_choice == 'Dark' or color_choice == 'Tối'
+                    or (BG_COLOR[0] <= 30 and BG_COLOR[1] <= 30 and BG_COLOR[2] <= 30)):
+                DARK_MODE = True
+            else:
+                DARK_MODE = False
+            if BUTTONS[2].collidepoint(MOUSE_POS):
+                if event.type == py.MOUSEBUTTONDOWN and event.button == 1:
+                    save_name = save_input.text
+                    if save_name != '':
+                        if save_name not in save_list:
+                            save_list.append(save_name)
+                            saved_color_list.append(
+                                (int(red_slider.value), int(green_slider.value), int(blue_slider.value)))
+            if TRASH_BOX.collidepoint(MOUSE_POS):
+                TRASH_TRANSPARENCY = 150
+                if event.type == py.MOUSEBUTTONDOWN and event.button == 1:
+                    if saved_color_choice != 'Default' and saved_color_choice != 'Mặc định':
+                        try:
+                            saved_color_index = save_list.index(saved_color_choice)
+                            save_list.pop(saved_color_index)
+                            saved_color_list.pop(saved_color_index)
+                            saved_color_dropdown.selected_index = 0
+                            save_config(save_list, saved_color_list)
+                        except (IndexError, ValueError):
+                            pass
+            else:
+                TRASH_TRANSPARENCY = 255
+        elif state == 'PSETTINGS':
+            if CLOSE_BOX.collidepoint(MOUSE_POS):
+                CLOSE_TRANSPARENCY = 150
+                if event.type == py.MOUSEBUTTONDOWN and event.button == 1:
+                    state = 'ADV SETTINGS'
+                    play_sfx()
+            else:
+                CLOSE_TRANSPARENCY = 250
+            if TRIANGLE_BOX.collidepoint(MOUSE_POS):
+                TRIANGLE_TRANSPARENCY = 150
+                if event.type == py.MOUSEBUTTONDOWN and event.button == 1:
+                    play_sfx()
+                    if P1_SKIN == 'Yellow':
+                        P1_SKIN = 'Green'
+                    else:
+                        P1_SKIN = 'Yellow'
+            else:
+                TRIANGLE_TRANSPARENCY = 255
+            if TRIANGLE_BOX2.collidepoint(MOUSE_POS):
+                TRIANGLE2_TRANSPARENCY = 150
+                if event.type == py.MOUSEBUTTONDOWN and event.button == 1:
+                    play_sfx()
+                    if P2_SKIN == 'Green':
+                        P2_SKIN = 'Yellow'
+                    else:
+                        P2_SKIN = 'Green'
+            else:
+                TRIANGLE2_TRANSPARENCY = 255
+            if TRIANGLE_BOX3.collidepoint(MOUSE_POS):
+                TRIANGLE3_TRANSPARENCY = 150
+                if event.type == py.MOUSEBUTTONDOWN and event.button == 1:
+                    play_sfx()
+                    current_p1_perk_idx = (current_p1_perk_idx + 1) % len(all_perks)
+            else:
+                TRIANGLE3_TRANSPARENCY = 255
+            if TRIANGLE_BOX4.collidepoint(MOUSE_POS):
+                TRIANGLE4_TRANSPARENCY = 150
+                if event.type == py.MOUSEBUTTONDOWN and event.button == 1:
+                    play_sfx()
+                    current_p2_perk_idx = (current_p2_perk_idx + 1) % len(all_perks)
+            else:
+                TRIANGLE4_TRANSPARENCY = 255
+        elif state == 'BASE':
+            if CLOSE_BOX.collidepoint(MOUSE_POS):
+                CLOSE_TRANSPARENCY = 150
+                if event.type == py.MOUSEBUTTONDOWN and event.button == 1:
+                    state = 'MENU'
+                    play_sfx()
+                    if TOGGLE_MUSIC:
+                        GAME_MUSIC.stop()
+                        BG_MUSIC.play(-1)
+            elif py.Rect(0, 0, 165, 50).collidepoint(MOUSE_POS):
+                SETTING_TRANSPARENCY = 150
+                if event.type == py.MOUSEBUTTONDOWN and event.button == 1:
+                    state = 'SETTINGS'
+                    play_sfx()
+                    if TOGGLE_MUSIC:
+                        GAME_MUSIC.stop()
+                        BG_MUSIC.play(-1)
+            else:
+                CLOSE_TRANSPARENCY = SETTING_TRANSPARENCY = 255
+        elif state == 'END':
+            if REPLAY_BOX.collidepoint(MOUSE_POS):
+                REPLAY_TRANSPARENCY = 150
+                if event.type == py.MOUSEBUTTONDOWN and event.button == 1:
+                    play_sfx()
+                    state = 'BASE'
+                    if TOGGLE_MUSIC:
+                        GAME_MUSIC.stop()
+                        GAME_MUSIC.play(-1)
+                    reset_game()
+            elif BUTTONS[0].collidepoint(MOUSE_POS):
+                SETTING_TRANSPARENCY = 150
+                if event.type == py.MOUSEBUTTONDOWN and event.button == 1:
+                    state = 'SETTINGS'
+                    play_sfx()
+            else:
+                REPLAY_TRANSPARENCY = 255
+                SETTING_TRANSPARENCY = 255
+
+    if state == 'MENU':
+        screen.fill(BG_COLOR)
+
+        if LANGUAGE == 'ENGLISH':
+            screen.blit(MENU_BG_EN, (0, 0))
+            screen.blit(PLAY_EN, (190, 380))
+            screen.blit(SETTING_EN, (490, 380))
+            py.display.set_caption('Dragon Boat Race')
+        else:
+            screen.blit(MENU_BG_VI, (0, 0))
+            screen.blit(PLAY_VI, (190, 380))
+            screen.blit(SETTING_VI, (490, 380))
+            py.display.set_caption('Đua thuyền rồng')
+        display()
+    elif state == 'SETTINGS':
+        screen.fill(BG_COLOR)
+
+        if LANGUAGE == 'ENGLISH':
+            screen.blit(SETTING_MENU_EN, (0, 0))
+        else:
+            screen.blit(SETTING_MENU_VI, (0, 0))
+        volume_slider.draw(screen, font, 'Volume' if LANGUAGE == 'ENGLISH' else 'Âm lượng', DARK_MODE)
+        volume_input.draw(screen)
+        language_dropdown.draw(screen)
+        difficulty_options = ['EASY', 'MEDIUM', 'HARD', 'INSANE',
+                              'EXTREME'] if LANGUAGE == 'ENGLISH' else ['DỄ', 'THƯỜNG', 'KHÓ',
+                                                                        'ĐIÊN LOẠN', 'CỰC KHÓ']
+        difficulty_dropdown.options = difficulty_options
+        difficulty_dropdown.draw(screen)
+        BUTTONS[0].centerx = screen.get_width() // 2
+        BUTTONS[0].y = 550
+        py.draw.rect(screen, (255, 255, 0), BUTTONS[0])
+        ADVANCED_SETTINGS_TEXT = font.render(
+            'ADVANCED SETTINGS' if LANGUAGE == 'ENGLISH' else 'CÀI ĐẶT NÂNG CAO', True, (0, 0, 0))
+        screen.blit(ADVANCED_SETTINGS_TEXT, ADVANCED_SETTINGS_TEXT.get_rect(center=BUTTONS[0].center))
+        display()
+    elif state == 'ADV SETTINGS':
+        screen.fill(BG_COLOR)
+        if TOGGLE_DARK_SCREEN:
+            dark_surface = py.Surface((900, 680))
+            dark_surface.fill((0, 0, 0))
+            dark_surface.set_alpha(int(dark_slider.value))
+            screen.blit(dark_surface, (0, 0))
+        draw_toggle(200, 100, TOGGLE_MUSIC, 'Music', 'Âm nhạc', TOGGLE_ON_EN, TOGGLE_OFF_EN, TOGGLE_ON_VI,
+                    TOGGLE_OFF_VI)
+        draw_toggle(200, 250, TOGGLE_SFX, 'Sound Effects', 'Hiệu ứng âm thanh', TOGGLE_ON_EN, TOGGLE_OFF_EN,
+                    TOGGLE_ON_VI, TOGGLE_OFF_VI)
+        draw_toggle(200, 400, TOGGLE_FIREWORKS, 'Fireworks', 'Pháo hoa', TOGGLE_ON_EN, TOGGLE_OFF_EN, TOGGLE_ON_VI,
+                    TOGGLE_OFF_VI)
+        draw_toggle(600, 100, TOGGLE_DARK_SCREEN, 'Dark Screen', 'Nền tối', TOGGLE_ON_EN, TOGGLE_OFF_EN, TOGGLE_ON_VI,
+                    TOGGLE_OFF_VI)
+        draw_toggle(600, 250, TOGGLE_FPS, 'Show FPS', 'Hiện FPS', TOGGLE_ON_EN, TOGGLE_OFF_EN, TOGGLE_ON_VI,
+                    TOGGLE_OFF_VI)
+        draw_toggle(400, 400, TOGGLE_PLAYER_MARK, "Players' Mark", 'Đánh dấu N.chơi', TOGGLE_ON_EN, TOGGLE_OFF_EN,
+                    TOGGLE_ON_VI, TOGGLE_OFF_VI)
+        draw_toggle(400, 100, SPEED_DISPLAY, 'Speed Display', 'Hiển thị tốc độ', TOGGLE_ON_EN, TOGGLE_OFF_EN,
+                    TOGGLE_ON_VI, TOGGLE_OFF_VI)
+        draw_toggle(400, 250, DARK_MODE, 'Dark Mode', 'Chế độ tối', TOGGLE_ON_EN, TOGGLE_OFF_EN, TOGGLE_ON_VI,
+                    TOGGLE_OFF_VI)
+
+        dark_slider.draw(screen, font, 'Dark Screen' if LANGUAGE == 'ENGLISH' else 'Nền tối',
+                         DARK_MODE)
+        dark_input.draw(screen)
+        firework_slider.draw(screen, font, 'Fireworks' if LANGUAGE == 'ENGLISH' else 'Pháo hoa',
+                             DARK_MODE)
+        firework_input.draw(screen)
+        sfx_slider.draw(screen, font, 'SFX' if LANGUAGE == 'ENGLISH' else 'Hiệu ứng âm thanh',
+                        DARK_MODE)
+        sfx_input.draw(screen)
+        py.draw.rect(screen, (255, 255, 0), BUTTONS[1])
+        bg_text = font.render('BG' if LANGUAGE == 'ENGLISH' else 'Màu',
+                              True, (255, 255, 255) if DARK_MODE else (0, 0, 0))
+        bg_text2 = font.render('COLOR' if LANGUAGE == 'ENGLISH' else 'Nền',
+                               True, (255, 255, 255) if DARK_MODE else (0, 0, 0))
+
+        bg_rect = bg_text.get_rect(center=(BUTTONS[1].centerx, BUTTONS[1].centery - 15))  # lệch lên một chút
+        bg_rect2 = bg_text2.get_rect(center=(BUTTONS[1].centerx, BUTTONS[1].centery + 15))  # lệch xuống một chút
+
+        screen.blit(bg_text, bg_rect)
+        screen.blit(bg_text2, bg_rect2)
+        py.draw.rect(screen, (255, 255, 0), BUTTONS[3])
+        plr_text = font.render('Player' if LANGUAGE == 'ENGLISH' else 'N. Chơi', True,
+                               (255, 255, 255) if DARK_MODE else (0, 0, 0))
+        screen.blit(plr_text, plr_text.get_rect(center=BUTTONS[3].center))
+        display()
+    elif state == 'VSETTINGS':
+        screen.fill(BG_COLOR)
+        red_slider.draw(screen, font, 'Red' if LANGUAGE == 'ENGLISH' else 'Đỏ', DARK_MODE)
+        green_slider.draw(screen, font, 'Green' if LANGUAGE == 'ENGLISH' else 'Xanh lục', DARK_MODE)
+        blue_slider.draw(screen, font, 'Blue' if LANGUAGE == 'ENGLISH' else 'Xanh dương', DARK_MODE)
+        red_input.draw(screen)
+        green_input.draw(screen)
+        blue_input.draw(screen)
+        save_input.draw(screen)
+        color_options = [
+            'Default', 'Green', 'Sky blue',
+            'Red', 'Yellow', 'Orange', 'White',
+            'Black', 'Light green', 'Purple', 'Dark', 'Rainbow', 'Custom'
+        ] if LANGUAGE == 'ENGLISH' else [
+            'Mặc định', 'Xanh lục', 'Xanh lam',
+            'Đỏ', 'Vàng', 'Cam', 'Trắng',
+            'Đen', 'Xanh nhạt', 'Tím', 'Tối', 'Cầu vồng', 'Tùy chỉnh'
+        ]
+        color_dropdown.options = color_options
+        color_dropdown.draw(screen)
+        saved_color_dropdown.draw(screen)
+        py.draw.rect(screen, (255, 255, 0), BUTTONS[2])
+        note_text = font.render('Scrollable!' if LANGUAGE == 'ENGLISH' else 'Kéo được!', True,
+                                (255, 255, 255) if DARK_MODE else (0, 0, 0))
+        save_text = font.render('Save!' if LANGUAGE == 'ENGLISH' else 'Lưu!', True,
+                                (255, 255, 255) if DARK_MODE else (0, 0, 0))
+        screen.blit(note_text, (500, 120))
+        screen.blit(note_text, (700, 120))
+        screen.blit(save_text, save_text.get_rect(center=BUTTONS[2].center))
+        screen.blit(TRASH_BIN, (600, 400))
+        display()
+    elif state == 'PSETTINGS':
+        screen.fill(BG_COLOR)
+        if P1_SKIN == 'Yellow':
+            screen.blit(YELLOW_SHIP, (100, 100))
+        else:
+            screen.blit(GREEN_SHIP, (100, 100))
+        if P2_SKIN == 'Green':
+            screen.blit(GREEN_SHIP, (100, 450))
+        else:
+            screen.blit(YELLOW_SHIP, (100, 450))
+        screen.blit(TRIANGLE, TRIANGLE.get_rect(center=TRIANGLE_BOX.center))
+        screen.blit(TRIANGLE2, TRIANGLE2.get_rect(center=TRIANGLE_BOX2.center))
+        screen.blit(TRIANGLE3, TRIANGLE3.get_rect(center=TRIANGLE_BOX3.center))
+        screen.blit(TRIANGLE4, TRIANGLE4.get_rect(center=TRIANGLE_BOX4.center))
+        p1_text = font.render('Player 1' if LANGUAGE == 'ENGLISH' else 'Người chơi 1', True,
+                              (255, 255, 255) if DARK_MODE else (0, 0, 0))
+        p2_text = font.render('Player 2' if LANGUAGE == 'ENGLISH' else 'Người chơi 2', True,
+                              (255, 255, 255) if DARK_MODE else (0, 0, 0))
+        perk_text = font.render('Perks' if LANGUAGE == 'ENGLISH' else 'Kĩ năng', True,
+                                (255, 255, 255) if DARK_MODE else (0, 0, 0))
+
+        py.draw.rect(screen, (0, 0, 0), BUTTONS[4])
+        py.draw.rect(screen, (0, 0, 0), BUTTONS[5])
+
+        desc1_lines = render_text_wrapped(
+            perks_desc[current_p1_perk_idx],
+            font,
+            (255, 255, 255) if DARK_MODE else (0, 0, 0),
+            400  # chiều rộng tối đa, bạn chỉnh theo nút BUTTONS[8] của bạn
+        )
+        desc2_lines = render_text_wrapped(
+            perks_desc[current_p2_perk_idx],
+            font,
+            (255, 255, 255) if DARK_MODE else (0, 0, 0),
+            400  # chiều rộng tối đa, bạn chỉnh theo nút BUTTONS[8] của bạn
+        )
+        perk1_text = font.render(perks_display[current_p1_perk_idx],
+                                 True, (255, 255, 255) if DARK_MODE else (0, 0, 0))
+        perk2_text = font.render(perks_display[current_p2_perk_idx],
+                                 True, (255, 255, 255) if DARK_MODE else (0, 0, 0))
+        y = BUTTONS[8].centery - (len(desc1_lines) * font.get_linesize()) // 2
+        for line in desc1_lines:
+            rect = line.get_rect(centerx=BUTTONS[8].centerx, y=y)
+            screen.blit(line, rect)
+            y += font.get_linesize()
+        y2 = BUTTONS[9].centery - (len(desc2_lines) * font.get_linesize()) // 2
+        for line in desc2_lines:
+            rect = line.get_rect(centerx=BUTTONS[9].centerx, y=y2)
+            screen.blit(line, rect)
+            y2 += font.get_linesize()
+        screen.blit(p1_text, (100, 60))
+        screen.blit(p2_text, (100, 410))
+        screen.blit(perk1_text, perk1_text.get_rect(center=BUTTONS[6].center))
+        screen.blit(perk2_text, perk2_text.get_rect(center=BUTTONS[7].center))
+        screen.blit(perk_text, perk_text.get_rect(center=BUTTONS[10].center))
+        screen.blit(perk_text, perk_text.get_rect(center=BUTTONS[11].center))
+        display()
+    elif state == 'BASE':
+        screen.fill(BG_COLOR)
+
+        X_BG -= 1
+        X_WAVE_1 -= SPEED_1
+        X_WAVE_2 -= SPEED_2
+        X_YELLOW_BALL += SPEED_1 / 100
+        X_GREEN_BALL += SPEED_2 / 100
+        DISTANCE_1 += SPEED_1
+        DISTANCE_2 += SPEED_2
+        if DISTANCE_1 >= FINISH_LINE_WORLD_X:
+            WINNER_TEXT = WINNER.render('PLAYER 1 WINS!',
+                                        True, (255, 255, 0))
+            state = 'END'
+            if TOGGLE_FIREWORKS:
+                firework_spawner(firework_slider.value)
+        elif DISTANCE_2 >= FINISH_LINE_WORLD_X:
+            WINNER_TEXT = WINNER.render('PLAYER 2 WINS!',
+                                        True, (0, 100, 0))
+            state = 'END'
+            if TOGGLE_FIREWORKS:
+                firework_spawner(firework_slider.value)
+        if ENERGY_VISIBLE_1:
+            X_POWER_1 -= SPEED_1
+            if X_POWER_1 < -480:
+                X_POWER_1 = 900
+                Y_POWER_1 = random.randint(130, 350)
+        if ENERGY_VISIBLE_2:
+            X_POWER_2 -= SPEED_2
+            if X_POWER_2 < -480:
+                X_POWER_2 = 900
+                Y_POWER_2 = random.randint(430, 620)
+        if not ENERGY_VISIBLE_1 and py.time.get_ticks() - ENERGY_TIMER_1 >= ENERGY_RESPAWN_TIME:
+            while True:
+                X_POWER_1 = 900
+                Y_POWER_1 = random.randint(130, 350)
+                ball_rect = ENERGY_BALL.get_rect(topleft=(X_POWER_1, Y_POWER_1))
+                collision = False
+                for rock in ROCKS:
+                    rock_rect = ROCK_IMG.get_rect(topleft=(rock[0], rock[1]))
+                    if ball_rect.colliderect(rock_rect):
+                        collision = True
+                        break
+                if not collision:
+                    ENERGY_VISIBLE_1 = True
+                    break
+        if not ENERGY_VISIBLE_2 and py.time.get_ticks() - ENERGY_TIMER_2 >= ENERGY_RESPAWN_TIME:
+            while True:
+                X_POWER_2 = 900
+                Y_POWER_2 = random.randint(430, 620)
+                ball_rect = ENERGY_BALL.get_rect(topleft=(X_POWER_2, Y_POWER_2))
+                collision = False
+                for rock in ROCKS:
+                    rock_rect = ROCK_IMG.get_rect(topleft=(rock[0], rock[1]))
+                    if ball_rect.colliderect(rock_rect):
+                        collision = True
+                        break
+                if not collision:
+                    ENERGY_VISIBLE_2 = True
+                    break
+        if X_BG < -1022:
+            X_BG = 0
+        if X_WAVE_1 < -1022:
+            X_WAVE_1 = 0
+        if X_WAVE_2 < -1022:
+            X_WAVE_2 = 0
+        KEYS = py.key.get_pressed()
+        if KEYS[py.K_w] and Y_1 > 110:
+            Y_1 -= 5
+        if KEYS[py.K_s] and Y_1 < 350:
+            Y_1 += 5
+        if KEYS[py.K_UP] and Y_2 > 380:
+            Y_2 -= 5
+        if KEYS[py.K_DOWN] and Y_2 < 610:
+            Y_2 += 5
+        screen.blit(BACKGROUND, (X_BG, 0))
+        screen.blit(BARRIER, (0, 0))
+        if P1_SKIN == 'Yellow':
+            screen.blit(PLAYER_1, (0, Y_1))
+        else:
+            screen.blit(PLAYER_2, (0, Y_1))
+        if P2_SKIN == 'Green':
+            screen.blit(PLAYER_2, (0, Y_2))
+        else:
+            screen.blit(PLAYER_1, (0, Y_2))
+        screen.blit(PROGRESS_BAR, (250, 0))
+        if P1_SKIN == 'Yellow':
+            screen.blit(YELLOW_BALL, (X_YELLOW_BALL, 5))
+        else:
+            screen.blit(GREEN_BALL, (X_YELLOW_BALL, 5))
+        if P2_SKIN == 'Green':
+            screen.blit(GREEN_BALL, (X_GREEN_BALL, 50))
+        else:
+            screen.blit(YELLOW_BALL, (X_GREEN_BALL, 50))
+        screen.blit(WAVE, (X_WAVE_1, 130))
+        screen.blit(WAVE, (X_WAVE_2, 430))
+        if LANGUAGE == 'ENGLISH':
+            screen.blit(SETTING_EN, (-35, -25))
+        else:
+            screen.blit(SETTING_VI, (-35, -25))
+        if ENERGY_VISIBLE_1:
+            screen.blit(ENERGY_BALL, (X_POWER_1, Y_POWER_1))
+        if ENERGY_VISIBLE_2:
+            screen.blit(ENERGY_BALL, (X_POWER_2, Y_POWER_2))
+        if TOGGLE_PLAYER_MARK:
+            p1_highlight = PLAYER_1.get_bounding_rect(1)
+            p2_highlight = PLAYER_2.get_bounding_rect(1)
+            py.draw.rect(screen, (255, 255, 0) if P1_SKIN == 'Yellow' else (0, 100, 0),
+                         p1_highlight.move(0, Y_1), 2)
+            py.draw.rect(screen, (0, 100, 0) if P2_SKIN == 'Green' else (255, 255, 0),
+                         p2_highlight.move(0, Y_2), 2)
+        check_collision()
+        finish_screen_x_1 = FINISH_LINE_WORLD_X - DISTANCE_1
+        finish_screen_x_2 = FINISH_LINE_WORLD_X - DISTANCE_2
+        if 0 <= finish_screen_x_1 <= 900:
+            screen.blit(FINISH_LINE, (finish_screen_x_1, 135))
+        if 0 <= finish_screen_x_2 <= 900:
+            screen.blit(FINISH_LINE, (finish_screen_x_2, 400))
+        for ROCK in ROCKS:
+            if 130 <= ROCK[1] <= 350:
+                ROCK[0] -= SPEED_1
+                if ROCK[0] < -480:
+                    ROCK[0] = 900
+                    ROCK[1] = random.randint(130, 350)
+            elif 430 <= ROCK[1] <= 620:
+                ROCK[0] -= SPEED_2
+                if ROCK[0] < -480:
+                    ROCK[0] = 900
+                    ROCK[1] = random.randint(430, 620)
+            screen.blit(ROCK_IMG, (ROCK[0], ROCK[1]))
+        display()
+
+    elif state == 'END':
+        screen.blit(BACKGROUND, (X_BG, 0))
+        screen.blit(BARRIER, (0, 0))
+        screen.blit(PLAYER_1, (0, Y_1))
+        screen.blit(PLAYER_2, (0, Y_2))
+        screen.blit(PROGRESS_BAR, (250, 0))
+        screen.blit(YELLOW_BALL, (X_YELLOW_BALL, 5))
+        screen.blit(GREEN_BALL, (X_GREEN_BALL, 50))
+        screen.blit(WAVE, (X_WAVE_1, 130))
+        screen.blit(WAVE, (X_WAVE_2, 430))
+        for ROCK in ROCKS:
+            screen.blit(ROCK_IMG, (ROCK[0], ROCK[1]))
+        dark_surface = py.Surface((900, 680))
+        dark_surface.fill((0, 0, 0))
+        dark_surface.set_alpha(int(dark_slider.value))
+        screen.blit(dark_surface, (0, 0))
+        text_rect = WINNER_TEXT.get_rect()
+        text_rect.centerx = screen.get_width() // 2
+        text_rect.y = 200
+        screen.blit(WINNER_TEXT, text_rect)
+        if LANGUAGE == 'ENGLISH':
+            screen.blit(REPLAY_EN, REPLAY_EN.get_rect(center=REPLAY_BOX.center))
+            screen.blit(SETTING_EN, SETTING_EN.get_rect(center=BUTTONS[0].center))
+        else:
+            screen.blit(REPLAY_VI, REPLAY_VI.get_rect(center=REPLAY_BOX.center))
+            screen.blit(SETTING_VI, SETTING_VI.get_rect(center=BUTTONS[0].center))
+        if TOGGLE_FPS:
+            fps_text = font.render(f"FPS: {int(clock.get_fps())}", True, (255, 255, 255))
+            screen.blit(fps_text, (0, 350))
+        if TOGGLE_FIREWORKS:
+            update_fireworks()
+
+    py.display.update()
+    clock.tick(120)
+
+# STATUS:
+# MENU: DONE ✅
+# SETTING: DONE ✅
+# ADV_SETTING: DONE ✅
+# BACKGROUND SETTING: DONE  ✅
+# PLAYER SETTING: IN DEVELOPMENT ❌
+# BASE GAME: DONE ✅
+# END: DONE ✅
