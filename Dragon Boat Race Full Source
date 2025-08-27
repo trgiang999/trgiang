@@ -6,11 +6,11 @@ import perks as pk
 
 CONFIG_FILE = "config.json"
 
-# Archivable Data
+# Storable Data
 TOGGLE_MUSIC = False
 TOGGLE_SFX = False
 TOGGLE_FIREWORKS = False
-TOGGLE_DARK_SCREEN = False
+TOGGLE_BRIGHTNESS = False
 TOGGLE_FPS = False
 TOGGLE_PLAYER_MARK = False
 SPEED_DISPLAY = False
@@ -18,41 +18,8 @@ DARK_MODE = False
 P1_SKIN = 'Yellow'
 P2_SKIN = 'Green'
 LANGUAGE = 'ENGLISH'
-
-
-def load_config():
-    try:
-        with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-            config = json.load(f)
-        # cập nhật lại các biến toàn cục
-        global TOGGLE_MUSIC, TOGGLE_SFX, TOGGLE_FIREWORKS, TOGGLE_DARK_SCREEN
-        global TOGGLE_FPS, TOGGLE_PLAYER_MARK, SPEED_DISPLAY, DARK_MODE
-        global P1_SKIN, P2_SKIN, LANGUAGE
-
-        TOGGLE_MUSIC = config.get("TOGGLE_MUSIC", True)
-        TOGGLE_SFX = config.get("TOGGLE_SFX", True)
-        TOGGLE_FIREWORKS = config.get("TOGGLE_FIREWORKS", True)
-        TOGGLE_DARK_SCREEN = config.get("TOGGLE_DARK_SCREEN", False)
-        TOGGLE_FPS = config.get("TOGGLE_FPS", True)
-        TOGGLE_PLAYER_MARK = config.get("TOGGLE_PLAYER_MARK", True)
-        SPEED_DISPLAY = config.get("SPEED_DISPLAY", False)
-        DARK_MODE = config.get("DARK_MODE", False)
-        P1_SKIN = config.get("P1_SKIN", "Default")
-        P2_SKIN = config.get("P2_SKIN", "Default")
-        LANGUAGE = config.get("LANGUAGE", "ENGLISH")
-
-        # trả lại save_list, saved_color_list
-        save_list = config.get("save_list", [])
-        saved_color_list = [tuple(c) for c in config.get("saved_color_list", [])]
-
-        return save_list, saved_color_list
-
-    except FileNotFoundError:
-        # nếu chưa có file, trả về mặc định
-        return [], []
-    except Exception as e:
-        print("Lỗi khi load config:", e)
-        return [], []
+current_p1_perk_idx = 0
+current_p2_perk_idx = 0
 
 
 def save_config(save_list, saved_color_list):
@@ -61,7 +28,7 @@ def save_config(save_list, saved_color_list):
             "TOGGLE_MUSIC": TOGGLE_MUSIC,
             "TOGGLE_SFX": TOGGLE_SFX,
             "TOGGLE_FIREWORKS": TOGGLE_FIREWORKS,
-            "TOGGLE_DARK_SCREEN": TOGGLE_DARK_SCREEN,
+            "TOGGLE_BRIGHTNESS": TOGGLE_BRIGHTNESS,
             "TOGGLE_FPS": TOGGLE_FPS,
             "TOGGLE_PLAYER_MARK": TOGGLE_PLAYER_MARK,
             "SPEED_DISPLAY": SPEED_DISPLAY,
@@ -69,14 +36,51 @@ def save_config(save_list, saved_color_list):
             "P2_SKIN": P2_SKIN,
             "LANGUAGE": LANGUAGE,
             "save_list": save_list,
-            # tuple -> list để JSON lưu được
-            "saved_color_list": [list(c) for c in saved_color_list]
+            "saved_color_list": [list(c) for c in saved_color_list],
+            "P1_PERK": current_p1_perk_idx,   # thêm dòng này
+            "P2_PERK": current_p2_perk_idx    # thêm dòng này
         }
         with open(CONFIG_FILE, "w", encoding="utf-8") as f:
             json.dump(config, f, indent=4, ensure_ascii=False)
         print("Đã lưu config:", config)
     except Exception as e:
         print("Lỗi khi lưu config:", e)
+
+
+def load_config():
+    try:
+        with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+            config = json.load(f)
+        global TOGGLE_MUSIC, TOGGLE_SFX, TOGGLE_FIREWORKS, TOGGLE_BRIGHTNESS
+        global TOGGLE_FPS, TOGGLE_PLAYER_MARK, SPEED_DISPLAY, DARK_MODE
+        global P1_SKIN, P2_SKIN, LANGUAGE
+        global current_p1_perk_idx, current_p2_perk_idx   # thêm dòng này
+
+        TOGGLE_MUSIC = config.get("TOGGLE_MUSIC", True)
+        TOGGLE_SFX = config.get("TOGGLE_SFX", True)
+        TOGGLE_FIREWORKS = config.get("TOGGLE_FIREWORKS", True)
+        TOGGLE_BRIGHTNESS = config.get("TOGGLE_BRIGHTNESS", False)
+        TOGGLE_FPS = config.get("TOGGLE_FPS", True)
+        TOGGLE_PLAYER_MARK = config.get("TOGGLE_PLAYER_MARK", True)
+        SPEED_DISPLAY = config.get("SPEED_DISPLAY", False)
+        DARK_MODE = config.get("DARK_MODE", False)
+        P1_SKIN = config.get("P1_SKIN", "Default")
+        P2_SKIN = config.get("P2_SKIN", "Default")
+        LANGUAGE = config.get("LANGUAGE", "ENGLISH")
+
+        # load perks
+        current_p1_perk_idx = config.get("P1_PERK", 0)
+        current_p2_perk_idx = config.get("P2_PERK", 0)
+
+        save_list = config.get("save_list", []) or ["Default"]
+        saved_color_list = [tuple(c) for c in config.get("saved_color_list", [])] or [(0, 166, 82)]
+
+        return save_list, saved_color_list
+    except FileNotFoundError:
+        return ["Default"], [(0, 166, 82)]
+    except Exception as e:
+        print("Lỗi khi load config:", e)
+        return ["Default"], [(0, 166, 82)]
 
 
 py.init()
@@ -322,7 +326,7 @@ class InputBox:
 
 
 class Dropdown:
-    def __init__(self, x, y, w, h, options, default_value, font, max_visible_items=5):
+    def __init__(self, x, y, w, h, options, default_value, font, max_visible_items=5, extension=True):
         self.rect = py.Rect(x, y, w, h)
         self.options = options
         self.max_visible_items = max_visible_items  # Maximum number of visible items
@@ -342,6 +346,7 @@ class Dropdown:
         self.is_open = False
         self.font = font
         self.hover_index = -1
+        self.extension = extension
 
     def handle_event(self, event):
         if event.type == py.MOUSEBUTTONDOWN and event.button == 1:  # Nếu nhấn chuột trái
@@ -398,7 +403,7 @@ class Dropdown:
         ITEM_BG_COLOR = (55, 55, 55)
         py.draw.rect(surface, BG_COLOR, self.rect, border_radius=6)
         py.draw.rect(surface, BORDER_COLOR, self.rect, 2, border_radius=6)
-        selected_text = shorten_text(self.options[self.selected_index])
+        selected_text = self.options[self.selected_index]
 
         text_surface = self.font.render(selected_text, True, TEXT_COLOR)
         text_rect = text_surface.get_rect(x=self.rect.x + 10, centery=self.rect.centery)
@@ -429,7 +434,13 @@ class Dropdown:
                 py.draw.rect(surface, BORDER_COLOR, option_rect, 1, border_radius=4)  # Vẽ outline viền cho option
 
                 # Biến text để vẽ lên (nội dung chính là self.options[i])
-                option_text = shorten_text(self.options[i])
+
+                # Biến text để vẽ lên (nội dung chính là self.options[i])
+                if self.extension:
+                    option_text = shorten_text(self.options[i])
+                else:
+                    option_text = self.options[i]
+
                 text_surface = self.font.render(option_text, True, TEXT_COLOR)
 
                 # Rect của text: đặt text lệch 10px từ trái, và căn giữa theo chiều cao của option_rect
@@ -483,7 +494,7 @@ color_dropdown = Dropdown(700, 150, 170, 40, [
     'Red', 'Yellow', 'Orange', 'White',
     'Black', 'Light green', 'Purple', 'Dark',
     'Custom',
-], 'Default', font)
+], 'Default', font, extension=False)
 saved_color_dropdown = Dropdown(500, 150, 170, 40, ['Default'], 'Default', font)
 
 clock = py.time.Clock()
@@ -494,7 +505,7 @@ GAME_MUSIC = py.mixer.Sound('Resources/nhacnen1.mp3')
 ENERGY_BALL_SOUND = py.mixer.Sound('Resources/power_sound.wav')
 ROCK_SOUND = py.mixer.Sound('Resources/rock_sound.wav')
 CLICK_SFX = py.mixer.Sound('Resources/ButtonPlate Click.wav')
-
+WIN_SFX = py.mixer.Sound('Resources/WinSFX.mp3')
 BG_MUSIC.play(-1)
 
 # DISTANCE TRACKING
@@ -504,8 +515,6 @@ FINISH_LINE_WORLD_X = 40000
 FINISH_LINE = py.transform.scale(py.image.load('Resources/finish_line.png'), (200, 265))
 
 # PERKS
-current_p1_perk_idx = 0
-current_p2_perk_idx = 0
 backend_perks = pk.get_perks('ENGLISH')
 bursting = bursting2 = False
 
@@ -593,7 +602,7 @@ def check_collision():
             ROCK[0] = -10000
             if TOGGLE_SFX:
                 ROCK_SOUND.play(0)
-            if 'Quick' in backend_perks[current_p1_perk_idx]:
+            if 'Speeds' in backend_perks[current_p1_perk_idx]:
                 SPEED_1 = -5
             elif backend_perks[current_p1_perk_idx] == 'Reduce Slowness':
                 SPEED_1 = max(0.1, SPEED_1 - (4 * .1))
@@ -613,7 +622,7 @@ def check_collision():
             ROCK[0] = -10000
             if TOGGLE_SFX:
                 ROCK_SOUND.play(0)
-            if 'Quick' in backend_perks[current_p2_perk_idx]:
+            if 'Speeds' in backend_perks[current_p2_perk_idx]:
                 SPEED_2 = -5
             elif backend_perks[current_p2_perk_idx] == 'Reduce Slowness':
                 SPEED_2 = max(0.1, SPEED_2 - (4 * .1))
@@ -624,7 +633,7 @@ def check_collision():
     if ENERGY1_IS_VISIBLE:
         BALL_COLLISION_1 = ENERGY_BALL.get_rect(topleft=(X_POWER_1, Y_POWER_1))
         if P1_HITBOX.colliderect(BALL_COLLISION_1):
-            if 'Quick' in backend_perks[current_p1_perk_idx]:
+            if 'Speeds' in backend_perks[current_p1_perk_idx]:
                 ENERGY_PLAYER1 += 10
             else:
                 ENERGY_PLAYER1 += 25
@@ -635,7 +644,7 @@ def check_collision():
     if ENERGY2_IS_VISIBLE:
         BALL_COLLISION_2 = ENERGY_BALL.get_rect(topleft=(X_POWER_2, Y_POWER_2))
         if P2_HITBOX.colliderect(BALL_COLLISION_2):
-            if 'Quick' in backend_perks[current_p2_perk_idx]:
+            if 'Speeds' in backend_perks[current_p2_perk_idx]:
                 ENERGY_PLAYER2 += 10
             else:
                 ENERGY_PLAYER2 += 25
@@ -787,13 +796,13 @@ def draw_toggle(x, y, status, text_en, text_vi, on_img_en, off_img_en, on_img_vi
 
 
 def display():
-    global TOGGLE_FPS, TOGGLE_DARK_SCREEN, CLOSE, CLOSE_BOX, state
+    global TOGGLE_FPS, TOGGLE_BRIGHTNESS, CLOSE, CLOSE_BOX, state
     if state != 'MENU':
         screen.blit(CLOSE, CLOSE.get_rect(center=CLOSE_BOX.center))
     if TOGGLE_FPS:
         fps_text = font.render(f"FPS: {int(clock.get_fps())}", True, (255, 255, 255))
         screen.blit(fps_text, (0, 350))
-    if TOGGLE_DARK_SCREEN:
+    if TOGGLE_BRIGHTNESS:
         dark_surface = py.Surface((900, 680))
         dark_surface.fill((0, 0, 0))
         dark_surface.set_alpha(int(dark_slider.value))
@@ -881,19 +890,21 @@ def set_volume():
         CLICK_SFX.set_volume(sfx_slider.value)
         ROCK_SOUND.set_volume(sfx_slider.value)
         ENERGY_BALL_SOUND.set_volume(sfx_slider.value)
+        WIN_SFX.set_volume(sfx_slider.value)
     else:
         ROCK_SOUND.set_volume(0)
         ENERGY_BALL_SOUND.set_volume(0)
+        WIN_SFX.set_volume(0)
 
 
 def set_default_speed(normal, special):
     global backend_perks
     global NORMAL_SPEED1, NORMAL_SPEED2
-    if 'Speed' in backend_perks[current_p1_perk_idx]:
+    if 'Passive' in backend_perks[current_p1_perk_idx]:
         NORMAL_SPEED1 = special
     else:
         NORMAL_SPEED1 = normal
-    if 'Speed' in backend_perks[current_p2_perk_idx]:
+    if 'Passive' in backend_perks[current_p2_perk_idx]:
         NORMAL_SPEED2 = special
     else:
         NORMAL_SPEED2 = normal
@@ -901,6 +912,8 @@ def set_default_speed(normal, special):
         NORMAL_SPEED1 = 7
     if "Slow" in backend_perks[current_p2_perk_idx]:
         NORMAL_SPEED2 = 7
+    if 'Test' in backend_perks[current_p1_perk_idx]:
+        NORMAL_SPEED1 = 999
 
 
 def display_plr():
@@ -1042,9 +1055,9 @@ while True:
                     else:
                         color_dropdown.selected_index = 0
                     play_sfx()
-                elif draw_toggle(600, 100, TOGGLE_DARK_SCREEN, 'Dark Screen', 'Nền tối', TOGGLE_ON_EN, TOGGLE_OFF_EN,
+                elif draw_toggle(600, 100, TOGGLE_BRIGHTNESS, 'Brightness', 'Nền tối', TOGGLE_ON_EN, TOGGLE_OFF_EN,
                                  TOGGLE_ON_VI, TOGGLE_OFF_VI).collidepoint(mouse_x, mouse_y):
-                    TOGGLE_DARK_SCREEN = not TOGGLE_DARK_SCREEN
+                    TOGGLE_BRIGHTNESS = not TOGGLE_BRIGHTNESS
                     play_sfx()
                 elif draw_toggle(600, 250, TOGGLE_FPS, 'Show FPS', 'Hiện FPS', TOGGLE_ON_EN, TOGGLE_OFF_EN,
                                  TOGGLE_ON_VI, TOGGLE_OFF_VI).collidepoint(mouse_x, mouse_y):
@@ -1264,7 +1277,7 @@ while True:
         display()
     elif state == 'ADV SETTINGS':
         screen.fill(BG_COLOR)
-        if TOGGLE_DARK_SCREEN:
+        if TOGGLE_BRIGHTNESS:
             dark_surface = py.Surface((900, 680))
             dark_surface.fill((0, 0, 0))
             dark_surface.set_alpha(int(dark_slider.value))
@@ -1275,7 +1288,8 @@ while True:
                     TOGGLE_ON_VI, TOGGLE_OFF_VI)
         draw_toggle(200, 400, TOGGLE_FIREWORKS, 'Fireworks', 'Pháo hoa', TOGGLE_ON_EN, TOGGLE_OFF_EN, TOGGLE_ON_VI,
                     TOGGLE_OFF_VI)
-        draw_toggle(600, 100, TOGGLE_DARK_SCREEN, 'Dark Screen', 'Nền tối', TOGGLE_ON_EN, TOGGLE_OFF_EN, TOGGLE_ON_VI,
+        draw_toggle(600, 100, TOGGLE_BRIGHTNESS, 'Brightness (Light to Dark)', 'Độ sáng (Sáng đến tối)', TOGGLE_ON_EN,
+                    TOGGLE_OFF_EN, TOGGLE_ON_VI,
                     TOGGLE_OFF_VI)
         draw_toggle(600, 250, TOGGLE_FPS, 'Show FPS', 'Hiện FPS', TOGGLE_ON_EN, TOGGLE_OFF_EN, TOGGLE_ON_VI,
                     TOGGLE_OFF_VI)
@@ -1286,7 +1300,7 @@ while True:
         draw_toggle(400, 250, DARK_MODE, 'Dark Mode', 'Chế độ tối', TOGGLE_ON_EN, TOGGLE_OFF_EN, TOGGLE_ON_VI,
                     TOGGLE_OFF_VI)
 
-        dark_slider.draw(screen, font, 'Dark Screen' if LANGUAGE == 'ENGLISH' else 'Nền tối',
+        dark_slider.draw(screen, font, 'Brightness' if LANGUAGE == 'ENGLISH' else 'Độ sáng',
                          DARK_MODE)
         dark_input.draw(screen)
         firework_slider.draw(screen, font, 'Fireworks' if LANGUAGE == 'ENGLISH' else 'Pháo hoa',
@@ -1373,8 +1387,10 @@ while True:
         p1_text = font.render('Player 1 (Hold LeftShift to Burst)' if LANGUAGE == 'ENGLISH' else
                               'Người chơi 1 (Giữ Shift trái để chạy nhanh)', True,
                               (255, 255, 255) if DARK_MODE else (0, 0, 0))
-        p2_text = font.render('Player 2 (Hold RightCTRL to Burst)' if LANGUAGE == 'ENGLISH' else 'Người chơi 2 (Giữ CTRL phải để chạy nhanh', True,
-                              (255, 255, 255) if DARK_MODE else (0, 0, 0))
+        p2_text = font.render(
+            'Player 2 (Hold RightCTRL to Burst)' if LANGUAGE == 'ENGLISH' else 'Người chơi 2 (Giữ CTRL phải để chạy nhanh',
+            True,
+            (255, 255, 255) if DARK_MODE else (0, 0, 0))
         perk_text = font.render('Perks' if LANGUAGE == 'ENGLISH' else 'Kĩ năng', True,
                                 (255, 255, 255) if DARK_MODE else (0, 0, 0))
         py.draw.rect(screen, (0, 0, 0), BUTTONS[4])
@@ -1454,17 +1470,17 @@ while True:
         if not timestopping and not timestopping2:
             X_BG -= 1
         if DISTANCE_1 >= FINISH_LINE_WORLD_X:
-            WINNER_TEXT = WINNER.render('PLAYER 1 WINS!',
-                                        True, (255, 255, 0))
+            WINNER_TEXT = WINNER.render('PLAYER 1 WINS!', True, (255, 255, 0))
             state = 'END'
             if TOGGLE_FIREWORKS:
                 firework_spawner(int(firework_slider.value))
+            WIN_SFX.play(0)
         elif DISTANCE_2 >= FINISH_LINE_WORLD_X:
-            WINNER_TEXT = WINNER.render('PLAYER 2 WINS!',
-                                        True, (0, 100, 0))
+            WINNER_TEXT = WINNER.render('PLAYER 2 WINS!', True, (0, 100, 0))
             state = 'END'
             if TOGGLE_FIREWORKS:
                 firework_spawner(int(firework_slider.value))
+            WIN_SFX.play(0)
         if ENERGY1_IS_VISIBLE:
             if not timestopping2:
                 X_POWER_1 -= SPEED_1
@@ -1538,22 +1554,23 @@ while True:
                         else:
                             SPEED_1 = min(NORMAL_SPEED1, SPEED_1 + 0.1)
                 else:  # Out of Energy
-                    if SPEED_1 > NORMAL_SPEED1 and not ('Quick' in backend_perks[current_p1_perk_idx]):
+                    if SPEED_1 > NORMAL_SPEED1 and not ('Speeds' in backend_perks[current_p1_perk_idx]):
                         SPEED_1 = max(NORMAL_SPEED1, SPEED_1 - 0.1)
                     elif SPEED_1 < NORMAL_SPEED1:
-                        if 'Speed' in backend_perks[current_p1_perk_idx]:
+                        if 'Passive' in backend_perks[current_p1_perk_idx]:
                             SPEED_1 = min(NORMAL_SPEED1, SPEED_1 + 0.05)
                         else:
                             SPEED_1 = min(NORMAL_SPEED1, SPEED_1 + 0.025)
             else:  # Not Bursting
-                if SPEED_1 > NORMAL_SPEED1 and not ('Quick' in backend_perks[current_p1_perk_idx]):
+                if SPEED_1 > NORMAL_SPEED1 and not ('Speeds' in backend_perks[current_p1_perk_idx]):
                     SPEED_1 = max(NORMAL_SPEED1, SPEED_1 - 0.1)
                 elif SPEED_1 < NORMAL_SPEED1:
-                    if 'Speed' in backend_perks[current_p1_perk_idx]:
+                    if 'Passive' in backend_perks[current_p1_perk_idx]:
                         SPEED_1 = min(NORMAL_SPEED1, SPEED_1 + 0.05)
+                    elif 'Test' in backend_perks[current_p1_perk_idx]:
+                        SPEED_1 = min(NORMAL_SPEED1, SPEED_1 + 10)
                     else:
                         SPEED_1 = min(NORMAL_SPEED1, SPEED_1 + 0.025)
-
             # SPECIAL ABILITY (FLASH STEP / TIMESTOP)
             if KEYS[py.K_c]:
                 if 'Flash' in backend_perks[current_p1_perk_idx]:
@@ -1597,18 +1614,18 @@ while True:
                     else:
                         SPEED_2 = min(13, SPEED_2 + 0.1)  # Max speed capped at 13, normal windup
                 else:  # If out of energy, but still holding ability keybind
-                    if SPEED_2 > NORMAL_SPEED2 and not ('Quick' in backend_perks[current_p2_perk_idx]):
+                    if SPEED_2 > NORMAL_SPEED2 and not ('Speeds' in backend_perks[current_p2_perk_idx]):
                         SPEED_2 = max(NORMAL_SPEED2, SPEED_2 - 0.1)
                     elif SPEED_2 < NORMAL_SPEED2:
-                        if 'Speed' in backend_perks[current_p2_perk_idx]:
+                        if 'Passive' in backend_perks[current_p2_perk_idx]:
                             SPEED_2 = min(NORMAL_SPEED2, SPEED_2 + 0.05)
                         else:
                             SPEED_2 = min(NORMAL_SPEED2, SPEED_2 + 0.025)
             else:  # If not holding ability key (Handle the same as out of energy)
-                if SPEED_2 > NORMAL_SPEED2 and not ('Quick' in backend_perks[current_p2_perk_idx]):
+                if SPEED_2 > NORMAL_SPEED2 and not ('Speeds' in backend_perks[current_p2_perk_idx]):
                     SPEED_2 = max(NORMAL_SPEED2, SPEED_2 - 0.1)
                 elif SPEED_2 < NORMAL_SPEED2:
-                    if 'Speed' in backend_perks[current_p2_perk_idx]:
+                    if 'Passive' in backend_perks[current_p2_perk_idx]:
                         SPEED_2 = min(NORMAL_SPEED2, SPEED_2 + 0.05)
                     else:
                         SPEED_2 = min(NORMAL_SPEED2, SPEED_2 + 0.025)
@@ -1656,12 +1673,12 @@ while True:
                 ability_counts2 += 1
                 print('Created rocks using dark magic!')
 
-        # ===== QUICK PERK (Player 1) =====
+        # ===== SPEEDSTER PERK (Player 1) =====
         if 'Speeds' in backend_perks[current_p1_perk_idx]:
             if NORMAL_SPEED1 <= SPEED_1 < 20:
                 SPEED_1 = min(20, SPEED_1 + 0.05)  # tăng từ từ
 
-        # ===== QUICK PERK (Player 2) =====
+        # ===== SPEEDSTER PERK (Player 2) =====
         if 'Speeds' in backend_perks[current_p2_perk_idx]:
             if NORMAL_SPEED2 <= SPEED_2 < 20:
                 SPEED_2 = min(20, SPEED_2 + 0.05)
@@ -1819,6 +1836,7 @@ while True:
             screen.blit(fps_text, (0, 350))
         if TOGGLE_FIREWORKS:
             update_fireworks()
+        GAME_MUSIC.stop()
     py.display.update()
     clock.tick(120)
 
@@ -1830,116 +1848,3 @@ while True:
 # PLAYER SETTING: DONE!!!! ✅
 # BASE GAME: DONE ✅
 # END: DONE ✅
-
-"""
-PERKS MODULE FULL SOURCE
-perks = [
-    'More Energy',  # More Energy every 1 energy bubble
-    'Reduce Slowness',  # Reduce slowness effect after taking a rock
-    'Faster Burst',  # Increase bursting speed
-    'Passive Speed',  # Get a small amount of speed at the start of the game
-    'Flash Step [x3]',  # Burst superfast for 1,5s, while bursting there will be no rocks. <15 Speed>
-    'Absorption [x10]',  # Gain 5 speed after taking a rock instead of slowing down
-    'Rage',  # Gain energy after taking a rock
-    'Dark Magic',  # Create 2 rocks every 5 seconds
-    'Timestop [x2]',  # Freeze enemy for 2 seconds, then reset their speed.
-    'Speedster',
-    # Faster over time (+1 speed every 3 seconds), reset and apply more slowness effect if hit a rock
-    'Restless Gambler',
-    # Every 5 seconds, coin flipping (Press C or /) has 10% chance to get infinite Flash Step for 10 seconds
-]
-
-perk_desc = [
-    'Increase Energy from energy bubble <+100>',
-    'Reduce slowness effect after taking a rock and increase speed <+1> <-90%>',
-    'Increase bursting speed <+8>',
-    'Get a small amount of speed at the start of the game <+3>',
-    'Burst super fast for 1,5s, while bursting there will be no rocks. <+15>',
-    'Gain speed after taking a rock instead of slowing down <+3>',
-    'Gain energy after taking a rock <+50>',
-    'Create 2 rocks every 5 seconds',
-    'Freeze enemy for 2 seconds, then reset their speed.',
-    'Faster over time, hitting a rock will reset and reduce speed.  <+3/5s>',
-    'Every 5s, coinflipping (Press C or /) has 10% chance to get infinite Flash Step for 4s'
-]
-
-charges = duration = cooldown = 0
-
-
-def get_desc(language):
-    global perk_desc
-    if language == 'ENGLISH':
-        perk_desc = [
-            'Increase Energy from energy bubble <x2>',  # ✅
-            'Reduce slowness effect after taking a rock <-90%>',  # ✅
-            'Increase bursting speed <+8>',  # ✅
-            'Increase default speed <+3>',  # ✅
-            'Move super fast for 3,5s, immune to rocks while flash stepping. <Press C or Backslash>',  # ✅
-            'Gain speed after taking a rock <+3>',  #
-            'Gain energy after taking a rock, slightly reduce slowness effect',  # ✅
-            'Create 2 rocks every 10 seconds (Max 3 times)',  # ✅
-            'Freeze enemy for 3 seconds, increase speed and immune to rocks while using. <Press "C" or "/">',  # ✅
-            'Faster over time, but hitting a rock will reduce massive amount of speed.',  #
-        ]
-    else:
-        perk_desc = [
-            'Tăng năng lượng từ bóng năng lượng <x2>',  # [0]
-            'Giảm hiệu ứng đi chậm sau khi đâm vào đá <-90%>',  # [1]
-            'Tăng thêm tốc độ khi đang burst <+8>',  # [2]
-            'Tăng tốc độ mặc định',  # [3]
-            'Tăng tốc cực nhanh trong 3,5s, trong thời gian này sẽ miễn nhiễm với đá. <Bấm "C" hoặc "/"',  # [4]
-            'Tăng tốc độ sau khi đâm vào đá <+3>',  # [5]
-            'Tăng năng lượng sau khi đâm vào đá, giảm nhẹ hiệu ứng đi chậm',  # [6]
-            'Tạo 2 đá mỗi 10 giây (Tối đa 3 lượt)',  # [7]
-            'Đóng băng đối thủ trong 3 giây, di chuyển nhanh hơn và miễn nhiễm với đá khi đang dùng <Bấm C hoặc />',  # [8]
-            'Nhanh hơn qua thời gian, nhưng đâm vào đá sẽ giảm rất nhiều tốc độ.',  # [9]
-        ]
-    return perk_desc
-
-
-def get_manual_use_ability(ability):
-    global charges, duration, cooldown
-    if ability == 'Absorption':
-        charges = 20
-    if ability == 'Flash Step':
-        charges = 5
-        duration = 3500  # ms
-        cooldown = 5000
-    if ability == 'Timestop':
-        charges = 3
-        duration = 3000
-        cooldown = 7000
-    return [charges, duration, cooldown]
-
-
-def get_perks(language):
-    global perks
-    if language == 'ENGLISH':
-        perks = [
-            'More Energy',  # ✅
-            'Reduce Slowness',  # ✅
-            'Faster Burst',  # ✅
-            'Passive Speed',  # ✅
-            'Flash Step [x5]',  # ✅
-            'Absorption [x20]',  # ✅
-            'Rage',  # ✅
-            'Dark Magic',  # ✅
-            'Timestop [x3]',  # ✅
-            'Speedster', # ✅
-        ]
-    else:
-        perks = [
-            'Thêm năng lượng',
-            'Giảm đi chậm',
-            'Tăng tốc nhanh hơn',
-            'Tăng tốc độ',
-            'Tốc biến [x5]',
-            'Hấp thụ [x20]',
-            'Tức giận',
-            'Ma thuật đen',
-            'Dừng thời gian [x3]',
-            'Vua tốc độ',
-        ]
-    return perks
-
-"""
