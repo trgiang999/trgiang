@@ -3,88 +3,24 @@ import sys
 import random
 import json
 import perks as pk
-
 CONFIG_FILE = "config.json"
 
 # Storable Data
-TOGGLE_MUSIC = False
-TOGGLE_SFX = False
+TOGGLE_MUSIC = True
+TOGGLE_SFX = True
 TOGGLE_FIREWORKS = False
 TOGGLE_BRIGHTNESS = False
 TOGGLE_FPS = False
 TOGGLE_PLAYER_MARK = False
 SPEED_DISPLAY = False
-DARK_MODE = False
+DARK_MODE = True
 P1_SKIN = 'Yellow'
 P2_SKIN = 'Green'
-LANGUAGE = 'ENGLISH'
+LANGUAGE = 'T. Việt'
 current_p1_perk_idx = 0
 current_p2_perk_idx = 0
 
-
-def save_config(save_list, saved_color_list):
-    try:
-        config = {
-            "TOGGLE_MUSIC": TOGGLE_MUSIC,
-            "TOGGLE_SFX": TOGGLE_SFX,
-            "TOGGLE_FIREWORKS": TOGGLE_FIREWORKS,
-            "TOGGLE_BRIGHTNESS": TOGGLE_BRIGHTNESS,
-            "TOGGLE_FPS": TOGGLE_FPS,
-            "TOGGLE_PLAYER_MARK": TOGGLE_PLAYER_MARK,
-            "SPEED_DISPLAY": SPEED_DISPLAY,
-            "P1_SKIN": P1_SKIN,
-            "P2_SKIN": P2_SKIN,
-            "LANGUAGE": LANGUAGE,
-            "save_list": save_list,
-            "saved_color_list": [list(c) for c in saved_color_list],
-            "P1_PERK": current_p1_perk_idx,   # thêm dòng này
-            "P2_PERK": current_p2_perk_idx    # thêm dòng này
-        }
-        with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-            json.dump(config, f, indent=4, ensure_ascii=False)
-        print("Đã lưu config:", config)
-    except Exception as e:
-        print("Lỗi khi lưu config:", e)
-
-
-def load_config():
-    try:
-        with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-            config = json.load(f)
-        global TOGGLE_MUSIC, TOGGLE_SFX, TOGGLE_FIREWORKS, TOGGLE_BRIGHTNESS
-        global TOGGLE_FPS, TOGGLE_PLAYER_MARK, SPEED_DISPLAY, DARK_MODE
-        global P1_SKIN, P2_SKIN, LANGUAGE
-        global current_p1_perk_idx, current_p2_perk_idx   # thêm dòng này
-
-        TOGGLE_MUSIC = config.get("TOGGLE_MUSIC", True)
-        TOGGLE_SFX = config.get("TOGGLE_SFX", True)
-        TOGGLE_FIREWORKS = config.get("TOGGLE_FIREWORKS", True)
-        TOGGLE_BRIGHTNESS = config.get("TOGGLE_BRIGHTNESS", False)
-        TOGGLE_FPS = config.get("TOGGLE_FPS", True)
-        TOGGLE_PLAYER_MARK = config.get("TOGGLE_PLAYER_MARK", True)
-        SPEED_DISPLAY = config.get("SPEED_DISPLAY", False)
-        DARK_MODE = config.get("DARK_MODE", False)
-        P1_SKIN = config.get("P1_SKIN", "Default")
-        P2_SKIN = config.get("P2_SKIN", "Default")
-        LANGUAGE = config.get("LANGUAGE", "ENGLISH")
-
-        # load perks
-        current_p1_perk_idx = config.get("P1_PERK", 0)
-        current_p2_perk_idx = config.get("P2_PERK", 0)
-
-        save_list = config.get("save_list", []) or ["Default"]
-        saved_color_list = [tuple(c) for c in config.get("saved_color_list", [])] or [(0, 166, 82)]
-
-        return save_list, saved_color_list
-    except FileNotFoundError:
-        return ["Default"], [(0, 166, 82)]
-    except Exception as e:
-        print("Lỗi khi load config:", e)
-        return ["Default"], [(0, 166, 82)]
-
-
 py.init()
-save_list, saved_color_list = load_config()
 state = 'MENU'
 DIFFICULTY = 'MEDIUM'
 
@@ -181,7 +117,7 @@ ENERGY_RESPAWN_TIME = 10000
 
 
 class Slider:
-    def __init__(self, x, y, w, h, value=0.5, min_val=0, max_val=1, knob_radius=14, offset=90, integer=False):
+    def __init__(self, x, y, w, h, value=0.5, min_val=0, max_val=1, knob_radius=14, offset=90, integer=False, count_down=False):
         self.x = x
         self.y = y
         self.w = w
@@ -193,12 +129,13 @@ class Slider:
         self.knob_radius = knob_radius
         self.dragging = False
         self.integer = integer
+        self.count_down = count_down
 
     def handle_event(self, event):
         if event.type == py.MOUSEBUTTONDOWN and event.button == 1:
             mouse_x, mouse_y = event.pos
             knob_x = self.x + (self.value - self.min_val) / (
-                    self.max_val - self.min_val) * self.w  # Tính vị trí ngang của nút trượt
+                    self.max_val - self.min_val) * self.w  # Tính vị trí x nút trượt
             if (mouse_x - knob_x) ** 2 + (
                     mouse_y - self.y) ** 2 <= self.knob_radius ** 2:  # Dùng công thức tính tọa độ của chuột có nằm trong bán kính của knob không
                 self.dragging = True
@@ -224,20 +161,25 @@ class Slider:
         track_rect = py.Rect(self.x, self.y - self.h // 2, self.w, self.h)
         py.draw.rect(surface, (180, 180, 180), track_rect, border_radius=10)
         ratio = (self.value - self.min_val) / (self.max_val - self.min_val)
+        down_ratio = (self.max_val - self.value) / (self.max_val - self.min_val)
+
         fill_width = self.w * ratio
         fill_rect = py.Rect(self.x, self.y - self.h // 2, fill_width, self.h)
         py.draw.rect(surface, (50, 120, 255), fill_rect, border_radius=10)
         knob_x = self.x + ratio * self.w
         knob_color = (100, 150, 255) if self.dragging else (50, 120, 255)
         py.draw.circle(surface, knob_color, (int(knob_x), self.y), self.knob_radius)
-        display_percent = int(ratio * 100)
+        if self.count_down:
+            display_percent = int(down_ratio * 100)
+        else:
+            display_percent = int(ratio * 100)
         if not self.integer:  # Cho thêm 1 lựa chọn là sử dụng % hay giá trị thô
             text_surface = font.render(f"{label}: {display_percent}%", True,
                                        (255, 255, 255) if dark_mode else (0, 0, 0))
         else:
             text_surface = font.render(f"{label}: {int(self.value)}", True, (255, 255, 255) if dark_mode else (0, 0, 0))
         text_rect = text_surface.get_rect()
-        text_rect.centerx = self.x + self.w // 2
+        text_rect.centerx = self.x + self.w / 2
         text_rect.y = self.y + self.offset
         surface.blit(text_surface, text_rect)
 
@@ -403,7 +345,10 @@ class Dropdown:
         ITEM_BG_COLOR = (55, 55, 55)
         py.draw.rect(surface, BG_COLOR, self.rect, border_radius=6)
         py.draw.rect(surface, BORDER_COLOR, self.rect, 2, border_radius=6)
-        selected_text = self.options[self.selected_index]
+        if self.extension:
+            selected_text = shorten_text(self.options[self.selected_index])
+        else:
+            selected_text = self.options[self.selected_index]
 
         text_surface = self.font.render(selected_text, True, TEXT_COLOR)
         text_rect = text_surface.get_rect(x=self.rect.x + 10, centery=self.rect.centery)
@@ -434,8 +379,6 @@ class Dropdown:
                 py.draw.rect(surface, BORDER_COLOR, option_rect, 1, border_radius=4)  # Vẽ outline viền cho option
 
                 # Biến text để vẽ lên (nội dung chính là self.options[i])
-
-                # Biến text để vẽ lên (nội dung chính là self.options[i])
                 if self.extension:
                     option_text = shorten_text(self.options[i])
                 else:
@@ -462,13 +405,21 @@ colors = [
     (153, 0, 153),  # [9] Purple
     (30, 30, 30),  # [10] Dark
 ]
+rgb_colors = [
+    (51, 255, 51),  # Green
+    (255, 255, 0),  # Yellow
+    (255, 128, 0),  # Orange
+    (255, 0, 0),  # Red
+    (153, 0, 153),  # Purple
+    (51, 255, 255),  # Sky blue
+]
 # SETTING SLIDER + INPUT
 volume_slider = Slider(225, 300, 150, 20, value=0.5, min_val=0, max_val=1, knob_radius=14)
 volume_input = InputBox(270, 340, 60, 40, text='50')
 
 # ADV SETTING SLIDER + INPUT
-dark_slider = Slider(225, 550, 150, 20, value=0.5, min_val=0, max_val=255, knob_radius=14)
-dark_input = InputBox(270, 590, 60, 40, text='0', min_val=0, max_val=255, multiplier=255)
+dark_slider = Slider(225, 550, 150, 20, value=0, min_val=0, max_val=170, knob_radius=14, count_down=True)
+dark_input = InputBox(270, 590, 60, 40, text='0', min_val=0, max_val=170, multiplier=170)
 firework_slider = Slider(430, 550, 150, 20, value=0.1, min_val=0, max_val=50, knob_radius=14, integer=True)
 firework_input = InputBox(475, 590, 60, 40, text='10', min_val=0, max_val=50, multiplier=50)
 sfx_slider = Slider(620, 550, 150, 20, value=1, min_val=0, max_val=1, knob_radius=14)
@@ -487,16 +438,16 @@ save_input = InputBox(325, 400, 250, 50, text='', num_val=False, lost_focus=True
 font = py.font.SysFont('Arial', 25)
 language_dropdown = Dropdown(390, 300, 150, 40, ['ENGLISH', 'T. Việt'], 'ENGLISH', font)
 difficulty_dropdown = Dropdown(550, 300, 150, 40, [
-    'EASY', 'MEDIUM', 'HARD', 'INSANE', 'EXTREME'
-], 'MEDIUM', font)
+                                                                'EASY', 'MEDIUM', 'HARD', 'INSANE', 'EXTREME'
+                                                            ], 'MEDIUM', font)
 color_dropdown = Dropdown(700, 150, 170, 40, [
-    'Default', 'Green', 'Sky blue',
-    'Red', 'Yellow', 'Orange', 'White',
-    'Black', 'Light green', 'Purple', 'Dark',
-    'Custom',
-], 'Default', font, extension=False)
+                                                        'Default', 'Green', 'Sky blue',
+                                                        'Red', 'Yellow', 'Orange', 'White',
+                                                        'Black', 'Light green', 'Purple', 'Dark', 'Rainbow',
+                                                        'Custom',
+                                                    ], 'Default', font, extension=False)
 saved_color_dropdown = Dropdown(500, 150, 170, 40, ['Default'], 'Default', font)
-
+previous_color_idx = 0
 clock = py.time.Clock()
 
 # SOUNDS
@@ -516,7 +467,6 @@ FINISH_LINE = py.transform.scale(py.image.load('Resources/finish_line.png'), (20
 
 # PERKS
 backend_perks = pk.get_perks('ENGLISH')
-bursting = bursting2 = False
 
 # Special Perks for P1
 absorption_pack = pk.get_manual_use_ability('Absorption')
@@ -538,7 +488,6 @@ ability_counts = 0
 absorption_pack2 = pk.get_manual_use_ability('Absorption')
 timestop_pack2 = pk.get_manual_use_ability('Timestop')
 flashstep_pack2 = pk.get_manual_use_ability('Flash Step')
-
 # Flash Step
 flashstepping2 = False
 last_flashstep2 = -99999
@@ -562,6 +511,89 @@ triangle_surface2.set_alpha(0)
 triangle_surface3.set_alpha(0)
 triangle_surface4.set_alpha(0)
 ts_surface.set_alpha(0)
+
+
+def save_config(save_list, saved_color_list):
+    try:
+        config = {
+            "TOGGLE_MUSIC": TOGGLE_MUSIC,
+            "TOGGLE_SFX": TOGGLE_SFX,
+            "TOGGLE_FIREWORKS": TOGGLE_FIREWORKS,
+            "TOGGLE_BRIGHTNESS": TOGGLE_BRIGHTNESS,
+            "TOGGLE_FPS": TOGGLE_FPS,
+            "TOGGLE_PLAYER_MARK": TOGGLE_PLAYER_MARK,
+            "SPEED_DISPLAY": SPEED_DISPLAY,
+            "P1_SKIN": P1_SKIN,
+            "P2_SKIN": P2_SKIN,
+            "LANGUAGE": LANGUAGE,
+            "save_list": save_list,
+            "saved_color_list": [list(c) for c in saved_color_list],
+            "P1_PERK": current_p1_perk_idx,
+            "P2_PERK": current_p2_perk_idx,
+            "COLOR_SELECTED_INDEX": color_dropdown.selected_index,
+            "DARK_MODE": DARK_MODE,
+            "RED_SLIDER": int(red_slider.value),
+            "GREEN_SLIDER": int(green_slider.value),
+            "BLUE_SLIDER": int(blue_slider.value),
+            "BRIGHTNESS": int(dark_slider.value),
+            "VOLUME": volume_slider.value,
+            "SFX": sfx_slider.value,
+            "FIREWORKS": firework_slider.value,
+        }
+        with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+            json.dump(config, f, indent=4, ensure_ascii=False)
+        print("Đã lưu config:", config)
+    except Exception as e:
+        print("Lỗi khi lưu config:", e)
+
+
+def load_config():
+    try:
+        with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+            config = json.load(f)
+        global TOGGLE_MUSIC, TOGGLE_SFX, TOGGLE_FIREWORKS, TOGGLE_BRIGHTNESS
+        global TOGGLE_FPS, TOGGLE_PLAYER_MARK, SPEED_DISPLAY, DARK_MODE
+        global P1_SKIN, P2_SKIN, LANGUAGE
+        global current_p1_perk_idx, current_p2_perk_idx
+
+        TOGGLE_MUSIC = config.get("TOGGLE_MUSIC", True)
+        TOGGLE_SFX = config.get("TOGGLE_SFX", True)
+        TOGGLE_FIREWORKS = config.get("TOGGLE_FIREWORKS", True)
+        TOGGLE_BRIGHTNESS = config.get("TOGGLE_BRIGHTNESS", False)
+        TOGGLE_FPS = config.get("TOGGLE_FPS", True)
+        TOGGLE_PLAYER_MARK = config.get("TOGGLE_PLAYER_MARK", True)
+        SPEED_DISPLAY = config.get("SPEED_DISPLAY", False)
+        DARK_MODE = config.get("DARK_MODE", False)
+        P1_SKIN = config.get("P1_SKIN", "Default")
+        P2_SKIN = config.get("P2_SKIN", "Default")
+        LANGUAGE = config.get("LANGUAGE", "ENGLISH")
+        red_slider.value = min(config.get("RED_SLIDER", 30), 255)
+        green_slider.value = min(config.get("GREEN_SLIDER", 30), 255)
+        blue_slider.value = min(config.get("BLUE_SLIDER", 30), 255)
+        dark_slider.value = min(config.get("BRIGHTNESS", 0), 170)
+        firework_slider.value = min(config.get("FIREWORKS", 0), 50)
+        sfx_slider.value = min(config.get("SFX", .5), .5)
+        volume_slider.value = min(config.get("VOLUME", .5), 1)
+
+        # load perks
+        current_p1_perk_idx = config.get("P1_PERK", 0)
+        current_p2_perk_idx = config.get("P2_PERK", 0)
+
+        save_list = config.get("save_list", []) or ["Default"]
+        saved_color_list = [tuple(c) for c in config.get("saved_color_list", [])] or [(0, 166, 82)]
+
+        selected_index = config.get("COLOR_SELECTED_INDEX", 0)
+        if 0 <= selected_index < len(color_dropdown.options):
+            color_dropdown.selected_index = selected_index
+        else:
+            color_dropdown.selected_index = 0  # fallback an toàn
+        print('Đã load config thành công!')
+        return save_list, saved_color_list
+    except FileNotFoundError:
+        return ["Default"], [(0, 166, 82)]
+    except Exception as e:
+        print("Lỗi khi load config:", e)
+        return ["Default"], [(0, 166, 82)]
 
 
 def spawn_rock(NUM, TEAM):
@@ -612,7 +644,7 @@ def check_collision():
             elif 'Absorption' in backend_perks[current_p1_perk_idx]:
                 if absorption_pack[0] > 0:
                     absorption_pack[0] = max(0, absorption_pack[0] - 1)
-                    SPEED_1 = max(13, SPEED_1 + 3)
+                    SPEED_1 = max(40, SPEED_1 + 3)
                     print(f'{absorption_pack[0]} charges left')
                 else:  # Out of charges
                     SPEED_1 = max(0.1, SPEED_1 - 4)
@@ -626,6 +658,13 @@ def check_collision():
                 SPEED_2 = -5
             elif backend_perks[current_p2_perk_idx] == 'Reduce Slowness':
                 SPEED_2 = max(0.1, SPEED_2 - (4 * .1))
+            elif 'Absorption' in backend_perks[current_p2_perk_idx]:
+                if absorption_pack2[0] > 0:
+                    absorption_pack2[0] = max(0, absorption_pack2[0] - 1)
+                    SPEED_2 = max(35, SPEED_2 + 3)
+                    print(f'{absorption_pack2[0]} charges left')
+                else:  # Out of charges
+                    SPEED_2 = max(0.1, SPEED_1 - 4)
             else:
                 if backend_perks[current_p2_perk_idx] == 'Rage':
                     ENERGY_PLAYER2 += 8
@@ -819,24 +858,33 @@ def play_sfx():
         CLICK_SFX.play(0)
 
 
-def render_text_wrapped(text, font, color, max_width):
+def blit_text_wrapped(screen, text, font, color, center_x, center_y, max_width):
     words = text.split(' ')
     lines = []
     current_line = ""
 
+    # Wrap text thành các dòng
     for word in words:
         test_line = current_line + (" " if current_line else "") + word
-        # render thử để đo chiều rộng
         if font.size(test_line)[0] <= max_width:
             current_line = test_line
         else:
-            lines.append(current_line)
+            if current_line:  # Tránh dòng rỗng
+                lines.append(current_line)
             current_line = word
+
     if current_line:
         lines.append(current_line)
 
-    # render từng dòng
-    return [font.render(line, True, color) for line in lines]
+    # Tính toán vị trí bắt đầu để căn giữa theo chiều dọc
+    total_height = len(lines) * font.get_linesize()
+    start_y = center_y - total_height // 2
+
+    # Blit từng dòng lên screen
+    for i, line in enumerate(lines):
+        text_surface = font.render(line, True, color)
+        text_rect = text_surface.get_rect(centerx=center_x, y=start_y + i * font.get_linesize())
+        screen.blit(text_surface, text_rect)
 
 
 def shorten_text(text, max_len=8):
@@ -936,16 +984,7 @@ def display_plr():
         screen.blit(YELLOW_BALL, (P2_BALL_X, 50))
 
 
-def try_activate_ability(is_active, start_time, last_time, pack, current_time):
-    if current_time - last_time >= pack[2]:  # đủ cooldown
-        if not is_active and pack[0] > 0:  # chưa chạy và còn charges
-            is_active = True
-            start_time = current_time
-            last_time = current_time
-            pack[0] = max(0, pack[0] - 1)  # trừ charges
-    return is_active, start_time, last_time, pack
-
-
+save_list, saved_color_list = load_config()
 while True:
     MOUSE_POS = py.mouse.get_pos()
     set_volume()
@@ -962,11 +1001,11 @@ while True:
         BG_COLOR = (int(red_slider.value), int(green_slider.value), int(blue_slider.value))
     elif color_choice == 'Rainbow' or color_choice == 'Cầu vồng':
         speed = 1
-        t = (py.time.get_ticks() / 1000) % (len(colors) * speed)
+        t = (py.time.get_ticks() / 1000) % (len(rgb_colors) * speed)
         index = int(t // speed)
-        next_index = (index + 1) % len(colors)
+        next_index = (index + 1) % len(rgb_colors)
         alpha = (t % speed) / speed
-        BG_COLOR = lerp(colors[index], colors[next_index], alpha)
+        BG_COLOR = lerp(rgb_colors[index], rgb_colors[next_index], alpha)
     else:
         BG_COLOR = colors[color_dropdown.selected_index]
     for event in py.event.get():
@@ -974,6 +1013,7 @@ while True:
             save_config(save_list, saved_color_list)
             py.quit()
             sys.exit()
+        # ===== MENU =====
         if state == 'MENU':
             if PLAY_BOX.collidepoint(MOUSE_POS):
                 PLAY_TRANSPARENCY = 150
@@ -989,6 +1029,8 @@ while True:
             else:
                 PLAY_TRANSPARENCY = 255
                 SETTING_TRANSPARENCY = 255
+
+        # ===== SETTINGS =====
         elif state == 'SETTINGS':
             if CLOSE_BOX.collidepoint(MOUSE_POS):
                 CLOSE_TRANSPARENCY = 150
@@ -1050,11 +1092,12 @@ while True:
                 elif draw_toggle(400, 250, DARK_MODE, 'Dark Mode', 'Chế độ tối', TOGGLE_ON_EN, TOGGLE_OFF_EN,
                                  TOGGLE_ON_VI, TOGGLE_OFF_VI).collidepoint(mouse_x, mouse_y):
                     DARK_MODE = not DARK_MODE
+                    play_sfx()
                     if DARK_MODE:
+                        previous_color_idx = color_dropdown.selected_index  # lưu màu hiện tại
                         color_dropdown.selected_index = 10
                     else:
-                        color_dropdown.selected_index = 0
-                    play_sfx()
+                        color_dropdown.selected_index = previous_color_idx  # khôi phục màu cũ
                 elif draw_toggle(600, 100, TOGGLE_BRIGHTNESS, 'Brightness', 'Nền tối', TOGGLE_ON_EN, TOGGLE_OFF_EN,
                                  TOGGLE_ON_VI, TOGGLE_OFF_VI).collidepoint(mouse_x, mouse_y):
                     TOGGLE_BRIGHTNESS = not TOGGLE_BRIGHTNESS
@@ -1201,6 +1244,8 @@ while True:
                     current_p2_perk_idx = (current_p2_perk_idx + 1) % len(perks)
             else:
                 TRIANGLE4_TRANSPARENCY = 255
+
+        # ===== IN GAME =====
         elif state == 'BASE':
             if CLOSE_BOX.collidepoint(MOUSE_POS):
                 CLOSE_TRANSPARENCY = 150
@@ -1220,6 +1265,8 @@ while True:
                         BG_MUSIC.play(-1)
             else:
                 CLOSE_TRANSPARENCY = SETTING_TRANSPARENCY = 255
+
+        # ===== END GAME =====
         elif state == 'END':
             if REPLAY_BOX.collidepoint(MOUSE_POS):
                 REPLAY_TRANSPARENCY = 150
@@ -1239,6 +1286,7 @@ while True:
                 REPLAY_TRANSPARENCY = 255
                 SETTING_TRANSPARENCY = 255
 
+    # ===== MENU =====
     if state == 'MENU':
         screen.fill(BG_COLOR)
 
@@ -1253,6 +1301,8 @@ while True:
             screen.blit(SETTING_VI, (490, 380))
             py.display.set_caption('Đua thuyền rồng')
         display()
+
+    # ===== SETTINGS =====
     elif state == 'SETTINGS':
         screen.fill(BG_COLOR)
 
@@ -1293,7 +1343,7 @@ while True:
                     TOGGLE_OFF_VI)
         draw_toggle(600, 250, TOGGLE_FPS, 'Show FPS', 'Hiện FPS', TOGGLE_ON_EN, TOGGLE_OFF_EN, TOGGLE_ON_VI,
                     TOGGLE_OFF_VI)
-        draw_toggle(400, 400, TOGGLE_PLAYER_MARK, "Players' Mark", 'Đánh dấu N.chơi', TOGGLE_ON_EN, TOGGLE_OFF_EN,
+        draw_toggle(400, 400, TOGGLE_PLAYER_MARK, "Highlight Players", 'Đánh dấu người chơi', TOGGLE_ON_EN, TOGGLE_OFF_EN,
                     TOGGLE_ON_VI, TOGGLE_OFF_VI)
         draw_toggle(400, 100, SPEED_DISPLAY, 'Speed Display', 'Hiển thị tốc độ', TOGGLE_ON_EN, TOGGLE_OFF_EN,
                     TOGGLE_ON_VI, TOGGLE_OFF_VI)
@@ -1306,38 +1356,28 @@ while True:
         firework_slider.draw(screen, font, 'Fireworks' if LANGUAGE == 'ENGLISH' else 'Pháo hoa',
                              DARK_MODE)
         firework_input.draw(screen)
-        sfx_slider.draw(screen, font, 'SFX' if LANGUAGE == 'ENGLISH' else 'H.Ứng âm thanh',
-                        DARK_MODE)
+        sfx_slider.draw(screen, font, 'SFX', DARK_MODE)
         sfx_input.draw(screen)
         py.draw.rect(screen, (255, 255, 0), BUTTONS[1])
-        bg_text = font.render('Background' if LANGUAGE == 'ENGLISH' else 'Nền',
-                              True, (255, 255, 255) if DARK_MODE else (0, 0, 0))
-        bg_lines = render_text_wrapped(
+        blit_text_wrapped(
+            screen,
             'Back ground' if LANGUAGE == 'ENGLISH' else 'Nền',
             font,
-            (255, 255, 255) if DARK_MODE else (0, 0, 0),
+            (0, 0, 0),
+            BUTTONS[1].centerx,
+            BUTTONS[1].centery,
             100
         )
-        player_config_lines = render_text_wrapped(
+        py.draw.rect(screen, (255, 255, 0), BUTTONS[3])
+        blit_text_wrapped(
+            screen,
             'Player' if LANGUAGE == 'ENGLISH' else 'Người chơi',
             font,
-            (255, 255, 255) if DARK_MODE else (0, 0, 0),
+            (0, 0, 0),
+            BUTTONS[3].centerx,
+            BUTTONS[3].centery,
             100
         )
-        bg_y = BUTTONS[1].centery - (len(bg_lines) * font.get_linesize()) // 2
-
-        for line in bg_lines:
-            rect = line.get_rect(centerx=BUTTONS[1].centerx, y=bg_y)
-            screen.blit(line, rect)
-            bg_y += font.get_linesize()
-
-        py.draw.rect(screen, (255, 255, 0), BUTTONS[3])
-        plr_config_y = BUTTONS[3].centery - (len(player_config_lines) * font.get_linesize() // 2)
-
-        for line in player_config_lines:
-            rect = line.get_rect(centerx=BUTTONS[3].centerx, y=plr_config_y)
-            screen.blit(line, rect)
-            plr_config_y += font.get_linesize()
         display()
     elif state == 'VSETTINGS':
         screen.fill(BG_COLOR)
@@ -1363,8 +1403,7 @@ while True:
         py.draw.rect(screen, (255, 255, 0), BUTTONS[2])
         note_text = font.render('Scrollable!' if LANGUAGE == 'ENGLISH' else 'Kéo được!', True,
                                 (255, 255, 255) if DARK_MODE else (0, 0, 0))
-        save_text = font.render('Save!' if LANGUAGE == 'ENGLISH' else 'Lưu!', True,
-                                (255, 255, 255) if DARK_MODE else (0, 0, 0))
+        save_text = font.render('Save!' if LANGUAGE == 'ENGLISH' else 'Lưu!', True, (0, 0, 0))
         screen.blit(note_text, (500, 120))
         screen.blit(note_text, (700, 120))
         screen.blit(save_text, save_text.get_rect(center=BUTTONS[2].center))
@@ -1384,79 +1423,64 @@ while True:
         screen.blit(TRIANGLE2, TRIANGLE2.get_rect(center=TRIANGLE_BOX2.center))
         screen.blit(TRIANGLE3, TRIANGLE3.get_rect(center=TRIANGLE_BOX3.center))
         screen.blit(TRIANGLE4, TRIANGLE4.get_rect(center=TRIANGLE_BOX4.center))
-        p1_text = font.render('Player 1 (Hold LeftShift to Burst)' if LANGUAGE == 'ENGLISH' else
-                              'Người chơi 1 (Giữ Shift trái để chạy nhanh)', True,
-                              (255, 255, 255) if DARK_MODE else (0, 0, 0))
-        p2_text = font.render(
-            'Player 2 (Hold RightCTRL to Burst)' if LANGUAGE == 'ENGLISH' else 'Người chơi 2 (Giữ CTRL phải để chạy nhanh',
-            True,
-            (255, 255, 255) if DARK_MODE else (0, 0, 0))
-        perk_text = font.render('Perks' if LANGUAGE == 'ENGLISH' else 'Kĩ năng', True,
-                                (255, 255, 255) if DARK_MODE else (0, 0, 0))
-        py.draw.rect(screen, (0, 0, 0), BUTTONS[4])
-        py.draw.rect(screen, (0, 0, 0), BUTTONS[5])
-        perk1_text = font.render(perks[current_p1_perk_idx], True, (255, 255, 255) if DARK_MODE else (0, 0, 0))
-        perk2_text = font.render(perks[current_p2_perk_idx], True, (255, 255, 255) if DARK_MODE else (0, 0, 0))
-        desc1_text = font.render(perk_desc[current_p1_perk_idx], True, (255, 255, 255) if DARK_MODE else (0, 0, 0))
-        desc2_text = font.render(perk_desc[current_p2_perk_idx], True, (255, 255, 255) if DARK_MODE else (0, 0, 0))
-        desc1_lines = render_text_wrapped(
-            perk_desc[current_p1_perk_idx],
-            font,
-            (255, 255, 255) if DARK_MODE else (0, 0, 0),
-            400
-        )
-        desc2_lines = render_text_wrapped(
-            perk_desc[current_p2_perk_idx],
-            font,
-            (255, 255, 255) if DARK_MODE else (0, 0, 0),
-            400
-        )
-        p1_lines = render_text_wrapped(
-            'Player 1 (Hold LeftShift to Burst)' if LANGUAGE == 'ENGLISH' else
-            'Người chơi 1 (Giữ Shift trái để Burst/Chạy nhanh)',
-            font,
-            (255, 255, 255) if DARK_MODE else (0, 0, 0),
-            400
-        )
-        p2_lines = render_text_wrapped(
-            'Player 2 (Hold RightCTRL to Burst)' if LANGUAGE == 'ENGLISH'
-            else 'Người chơi 2 (Giữ CTRL phải để Burst/Chạy nhanh)',
-            font,
-            (255, 255, 255) if DARK_MODE else (0, 0, 0),
-            400
-        )
-        y = BUTTONS[8].centery - (len(desc1_lines) * font.get_linesize()) // 2
-        for line in desc1_lines:
-            rect = line.get_rect(centerx=BUTTONS[8].centerx, y=y)
-            screen.blit(line, rect)
-            y += font.get_linesize()
-        y2 = BUTTONS[9].centery - (len(desc2_lines) * font.get_linesize()) // 2
-        for line in desc2_lines:
-            rect = line.get_rect(centerx=BUTTONS[9].centerx, y=y2)
-            screen.blit(line, rect)
-            y2 += font.get_linesize()
-        y3 = BUTTONS[13].centery - (len(p1_lines) * font.get_linesize()) // 2
-        for line in p1_lines:
-            rect = line.get_rect(centerx=BUTTONS[13].centerx, y=y3)
-            screen.blit(line, rect)
-            y3 += font.get_linesize()
-        y4 = BUTTONS[14].centery - (len(p2_lines) * font.get_linesize()) // 2
-        for line in p2_lines:
-            rect = line.get_rect(centerx=BUTTONS[14].centerx, y=y4)
-            screen.blit(line, rect)
-            y4 += font.get_linesize()
-
-        screen.blit(perk1_text, perk1_text.get_rect(center=BUTTONS[6].center))
-        screen.blit(perk2_text, perk2_text.get_rect(center=BUTTONS[7].center))
-        screen.blit(perk_text, perk_text.get_rect(center=BUTTONS[10].center))
-        screen.blit(perk_text, perk_text.get_rect(center=BUTTONS[11].center))
 
         # Display Surface
         screen.blit(triangle_surface, TRIANGLE.get_rect(center=TRIANGLE_BOX.center))
         screen.blit(triangle_surface2, TRIANGLE2.get_rect(center=TRIANGLE_BOX2.center))
         screen.blit(triangle_surface3, TRIANGLE3.get_rect(center=TRIANGLE_BOX3.center))
         screen.blit(triangle_surface4, TRIANGLE4.get_rect(center=TRIANGLE_BOX4.center))
+
+        perk_text = font.render('Perks' if LANGUAGE == 'ENGLISH' else 'Kĩ năng', True,
+                                (255, 255, 255) if DARK_MODE else (0, 0, 0))
+        py.draw.rect(screen, (0, 0, 0), BUTTONS[4])
+        py.draw.rect(screen, (0, 0, 0), BUTTONS[5])
+        perk1_text = font.render(perks[current_p1_perk_idx], True, (255, 255, 255) if DARK_MODE else (0, 0, 0))
+        perk2_text = font.render(perks[current_p2_perk_idx], True, (255, 255, 255) if DARK_MODE else (0, 0, 0))
+        blit_text_wrapped(
+            screen,
+            perk_desc[current_p1_perk_idx],
+            font,
+            (255, 255, 255) if DARK_MODE else (0, 0, 0),
+            BUTTONS[8].centerx,
+            BUTTONS[8].centery,
+            400
+        )
+        blit_text_wrapped(
+            screen,
+            perk_desc[current_p2_perk_idx],
+            font,
+            (255, 255, 255) if DARK_MODE else (0, 0, 0),
+            BUTTONS[9].centerx,
+            BUTTONS[9].centery,
+            400
+        )
+        blit_text_wrapped(
+            screen,
+            'Player 1 (Hold LeftShift to Burst)' if LANGUAGE == 'ENGLISH' else
+            'Người chơi 1 (Giữ Shift trái để Burst/Chạy nhanh)',
+            font,
+            (255, 255, 255) if DARK_MODE else (0, 0, 0),
+            BUTTONS[13].centerx,
+            BUTTONS[13].centery,
+            400
+        )
+        blit_text_wrapped(
+            screen,
+            'Player 2 (Hold RightCTRL to Burst)' if LANGUAGE == 'ENGLISH'
+            else 'Người chơi 2 (Giữ CTRL phải để Burst/Chạy nhanh)',
+            font,
+            (255, 255, 255) if DARK_MODE else (0, 0, 0),
+            BUTTONS[14].centerx,
+            BUTTONS[14].centery,
+            400
+        )
+        screen.blit(perk1_text, perk1_text.get_rect(center=BUTTONS[6].center))
+        screen.blit(perk2_text, perk2_text.get_rect(center=BUTTONS[7].center))
+        screen.blit(perk_text, perk_text.get_rect(center=BUTTONS[10].center))
+        screen.blit(perk_text, perk_text.get_rect(center=BUTTONS[11].center))
         display()
+
+    # ===== IN GAME =====
     elif state == 'BASE':
         screen.fill(BG_COLOR)
         if not timestopping2:
@@ -1536,7 +1560,7 @@ while True:
                 Y_1 -= 5
             if KEYS[py.K_s] and Y_1 < 350:
                 Y_1 += 5
-            # Player 1 Burst Ability (F key)
+            # Player 1 Burst Ability (LSHIFT key)
             if KEYS[py.K_LSHIFT] and not flashstepping:
                 if ENERGY_PLAYER1 > 0:
                     if backend_perks[current_p1_perk_idx] == 'More Energy':
@@ -1574,11 +1598,11 @@ while True:
             # SPECIAL ABILITY (FLASH STEP / TIMESTOP)
             if KEYS[py.K_c]:
                 if 'Flash' in backend_perks[current_p1_perk_idx]:
-                    flashstepping, flashstep_start, last_flashstep, flashstep_pack = try_activate_ability(
+                    flashstepping, flashstep_start, last_flashstep, flashstep_pack = pk.try_activate_ability(
                         flashstepping, flashstep_start, last_flashstep, flashstep_pack, py.time.get_ticks()
                     )
                 elif 'Time' in backend_perks[current_p1_perk_idx]:
-                    timestopping, ts_start, last_ts, timestop_pack = try_activate_ability(
+                    timestopping, ts_start, last_ts, timestop_pack = pk.try_activate_ability(
                         timestopping, ts_start, last_ts, timestop_pack, py.time.get_ticks()
                     )
 
@@ -1633,11 +1657,11 @@ while True:
             # ===== FLASH STEP + TIME-STOP =====
             if KEYS[py.K_BACKSLASH]:
                 if 'Flash' in backend_perks[current_p2_perk_idx]:
-                    flashstepping2, flashstep_start2, last_flashstep2, flashstep_pack2 = try_activate_ability(
+                    flashstepping2, flashstep_start2, last_flashstep2, flashstep_pack2 = pk.try_activate_ability(
                         flashstepping2, flashstep_start2, last_flashstep2, flashstep_pack2, py.time.get_ticks()
                     )
                 elif 'Time' in backend_perks[current_p2_perk_idx]:
-                    timestopping2, ts_start2, last_ts2, timestop_pack2 = try_activate_ability(
+                    timestopping2, ts_start2, last_ts2, timestop_pack2 = pk.try_activate_ability(
                         timestopping2, ts_start2, last_ts2, timestop_pack2, py.time.get_ticks()
                     )
             if flashstepping2:
@@ -1685,18 +1709,7 @@ while True:
         screen.blit(BACKGROUND, (X_BG, 0))
         screen.blit(BARRIER, (0, 0))
         screen.blit(PROGRESS_BAR, (250, 0))
-        if P1_SKIN == 'Yellow':
-            screen.blit(YELLOW_SHIP_G, (0, Y_1))
-            screen.blit(YELLOW_BALL, (P1_BALL_X, 5))
-        else:
-            screen.blit(GREEN_SHIP_G, (0, Y_1))
-            screen.blit(GREEN_BALL, (P1_BALL_X, 5))
-        if P2_SKIN == 'Green':
-            screen.blit(GREEN_SHIP_G, (0, Y_2))
-            screen.blit(GREEN_BALL, (P2_BALL_X, 50))
-        else:
-            screen.blit(YELLOW_SHIP_G, (0, Y_2))
-            screen.blit(YELLOW_BALL, (P2_BALL_X, 50))
+        display_plr()
         screen.blit(WAVE, (X_WAVE_1, 130))
         screen.blit(WAVE, (X_WAVE_2, 430))
         if LANGUAGE == 'ENGLISH':
@@ -1725,21 +1738,53 @@ while True:
             if 130 <= ROCK[1] <= 350:
                 if not timestopping2:
                     if -1022 >= ROCK[0] > -10000:
-                        ROCK[0] -= 1000
+                        ROCK[0] = -10000
                     else:
                         ROCK[0] -= SPEED_1
                 if ROCK[0] < -10500:
-                    ROCK[0] = 900
-                    ROCK[1] = random.randint(130, 350)
+                    while True:
+                        new_y = random.randint(130, 350)
+                        new_rock_rect = ROCK_IMG.get_rect(topleft=(900, new_y))
+                        collision = False
+                        for existing_rock in ROCKS:
+                            if existing_rock is not ROCK:
+                                existing_rock_rect = ROCK_IMG.get_rect(topleft=(existing_rock[0], existing_rock[1]))
+                                if new_rock_rect.colliderect(existing_rock_rect):
+                                    collision = True
+                                    break
+                        if not collision and ENERGY1_IS_VISIBLE:
+                            energy1_rect = ENERGY_BALL.get_rect(topleft=(X_POWER_1, Y_POWER_1))
+                            if new_rock_rect.colliderect(energy1_rect):
+                                collision = True
+                        if not collision:
+                            ROCK[0] = 900
+                            ROCK[1] = new_y
+                            break
             elif 430 <= ROCK[1] <= 620:
                 if not timestopping:
                     if -1022 >= ROCK[0] > -10000:
-                        ROCK[0] -= 1000
+                        ROCK[0] = -10000
                     else:
                         ROCK[0] -= SPEED_2
                 if ROCK[0] < -10500:
-                    ROCK[0] = 900
-                    ROCK[1] = random.randint(430, 620)
+                    while True:
+                        new_y = random.randint(430, 620)
+                        new_rock_rect = ROCK_IMG.get_rect(topleft=(900, new_y))
+                        collision = False
+                        for existing_rock in ROCKS:
+                            if existing_rock is not ROCK:
+                                existing_rock_rect = ROCK_IMG.get_rect(topleft=(existing_rock[0], existing_rock[1]))
+                                if new_rock_rect.colliderect(existing_rock_rect):
+                                    collision = True
+                                    break
+                        if not collision and ENERGY2_IS_VISIBLE:
+                            energy2_rect = ENERGY_BALL.get_rect(topleft=(X_POWER_2, Y_POWER_2))
+                            if new_rock_rect.colliderect(energy2_rect):
+                                collision = True
+                        if not collision:
+                            ROCK[0] = 900
+                            ROCK[1] = new_y
+                            break
             screen.blit(ROCK_IMG, (ROCK[0], ROCK[1]))
         if SPEED_DISPLAY:
             DISP_SPD1 = round(SPEED_1, 2)
@@ -1758,7 +1803,6 @@ while True:
                                       True, (0, 0, 0))
             screen.blit(spd_render1, (0, Y_1 + 50))
             screen.blit(spd_render2, (0, Y_2 + 50))
-        # ===== HIỂN THỊ SỐ LƯỢT DÙNG PERK =====
         # Player 1
         if 'Flash' in backend_perks[current_p1_perk_idx]:
             perk_text1 = font.render(
@@ -1793,25 +1837,14 @@ while True:
         screen.blit(ts_surface, (0, 0))
         display()
 
+    # ===== END GAME =====
     elif state == 'END':
         screen.blit(BACKGROUND, (X_BG, 0))
         screen.blit(BARRIER, (0, 0))
         screen.blit(YELLOW_SHIP_G, (0, Y_1))
         screen.blit(GREEN_SHIP_G, (0, Y_2))
         screen.blit(PROGRESS_BAR, (250, 0))
-        if P1_SKIN == 'Yellow':
-            screen.blit(YELLOW_BALL, (P1_BALL_X, 5))
-            screen.blit(YELLOW_SHIP_G, (0, Y_1))
-        else:
-            screen.blit(GREEN_BALL, (P1_BALL_X, 5))
-            screen.blit(GREEN_SHIP_G, (0, Y_1))
-
-        if P2_SKIN == 'Green':
-            screen.blit(GREEN_BALL, (P2_BALL_X, 50))
-            screen.blit(GREEN_SHIP_G, (0, Y_2))
-        else:
-            screen.blit(YELLOW_BALL, (P2_BALL_X, 50))
-            screen.blit(YELLOW_SHIP_G, (0, Y_2))
+        display_plr()
 
         screen.blit(WAVE, (X_WAVE_1, 130))
         screen.blit(WAVE, (X_WAVE_2, 430))
@@ -1839,12 +1872,75 @@ while True:
         GAME_MUSIC.stop()
     py.display.update()
     clock.tick(120)
+"""
+CODE GIÚP THAY ĐỔI TỐC ĐỘ CỦA NGƯỜI KHI CHẠM VÀO ĐÁ:
+def check_collision():
+    global SPEED_1, SPEED_2
+    global X_POWER_1, X_POWER_2, Y_POWER_1, Y_POWER_2
+    global ENERGY1_IS_VISIBLE, ENERGY2_IS_VISIBLE, ENERGY_TIMER_1, ENERGY_TIMER_2
+    global ENERGY_PLAYER1, ENERGY_PLAYER2
+    global flashstepping, flashstepping2
+    global timestopping, timestopping2
+    global absorption_pack, absorption_pack2
+    P1_HITBOX = YELLOW_SHIP_G.get_rect(topleft=(0, Y_1))
+    P2_HITBOX = GREEN_SHIP_G.get_rect(topleft=(0, Y_2))
+    backend_perks = pk.get_perks('ENGLISH')
+    for ROCK in ROCKS:
+        ROCK_COLLIDE_BOX = ROCK_IMG.get_rect(topleft=(ROCK[0], ROCK[1]))
+        if P1_HITBOX.colliderect(ROCK_COLLIDE_BOX) and (not timestopping and not flashstepping):
+            ROCK[0] = -10000
+            if TOGGLE_SFX:
+                ROCK_SOUND.play(0)
+            if 'Speeds' in backend_perks[current_p1_perk_idx]:
+                SPEED_1 = -5
+            elif backend_perks[current_p1_perk_idx] == 'Reduce Slowness':
+                SPEED_1 = max(0.1, SPEED_1 - (4 * .1))
+            elif backend_perks[current_p1_perk_idx] == 'Rage':
+                ENERGY_PLAYER1 += 8
+                SPEED_1 = max(0.1, SPEED_1 - 3)
+            elif 'Absorption' in backend_perks[current_p1_perk_idx]:
+                if absorption_pack[0] > 0:
+                    absorption_pack[0] = max(0, absorption_pack[0] - 1)
+                    SPEED_1 = max(40, SPEED_1 + 3)
+                    print(f'{absorption_pack[0]} charges left')
+                else:  # Out of charges
+                    SPEED_1 = max(0.1, SPEED_1 - 4)
+            else:
+                SPEED_1 = max(0.1, SPEED_1 - 4)
+        if P2_HITBOX.colliderect(ROCK_COLLIDE_BOX) and (not timestopping2 and not flashstepping2):
+            ROCK[0] = -10000
+            if TOGGLE_SFX:
+                ROCK_SOUND.play(0)
+            if 'Speeds' in backend_perks[current_p2_perk_idx]:
+                SPEED_2 = -5
+            elif backend_perks[current_p2_perk_idx] == 'Reduce Slowness':
+                SPEED_2 = max(0.1, SPEED_2 - (4 * .1))
+            elif 'Absorption' in backend_perks[current_p2_perk_idx]:
+                if absorption_pack2[0] > 0:
+                    absorption_pack2[0] = max(0, absorption_pack2[0] - 1)
+                    SPEED_2 = max(35, SPEED_2 + 3)
+                    print(f'{absorption_pack2[0]} charges left')
+                else:  # Out of charges
+                    SPEED_2 = max(0.1, SPEED_1 - 4)
+            else:
+                if backend_perks[current_p2_perk_idx] == 'Rage':
+                    ENERGY_PLAYER2 += 8
+                SPEED_2 = max(0.1, SPEED_2 - 4)
+    if ENERGY1_IS_VISIBLE:
+        BALL_COLLISION_1 = ENERGY_BALL.get_rect(topleft=(X_POWER_1, Y_POWER_1))
+        if P1_HITBOX.colliderect(BALL_COLLISION_1):
+            SPEED_1 += 3  # Increase 3 speed for player 1
+            ENERGY1_IS_VISIBLE = False
+            ENERGY_TIMER_1 = py.time.get_ticks()
+            if TOGGLE_SFX:
+                ENERGY_BALL_SOUND.play(0)
+    if ENERGY2_IS_VISIBLE:
+        BALL_COLLISION_2 = ENERGY_BALL.get_rect(topleft=(X_POWER_2, Y_POWER_2))
+        if P2_HITBOX.colliderect(BALL_COLLISION_2):
+            SPEED_2 += 3  # Increase 3 speed for player 2
+            ENERGY2_IS_VISIBLE = False
+            ENERGY_TIMER_2 = py.time.get_ticks()
+            if TOGGLE_SFX:
+                ENERGY_BALL_SOUND.play(0)
 
-# STATUS:
-# MENU: DONE ✅
-# SETTING: DONE ✅
-# ADV_SETTING: DONE ✅
-# BACKGROUND SETTING: DONE  ✅
-# PLAYER SETTING: DONE!!!! ✅
-# BASE GAME: DONE ✅
-# END: DONE ✅
+"""
