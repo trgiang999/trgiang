@@ -1942,5 +1942,4 @@ def check_collision():
             ENERGY_TIMER_2 = py.time.get_ticks()
             if TOGGLE_SFX:
                 ENERGY_BALL_SOUND.play(0)
-
 """
