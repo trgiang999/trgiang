@@ -3,9 +3,9 @@ import sys
 import random
 import json
 import perks as pk
-CONFIG_FILE = "config.json"
 
-# Storable Data
+# region ===== Storable Data =====
+CONFIG_FILE = "config.json"
 toggle_music = True
 toggle_sfx = True
 toggle_fireworks = False
@@ -19,33 +19,35 @@ p2_skin = 'Green'
 language = 'T. Việt'
 current_p1_perk_idx = 0
 current_p2_perk_idx = 0
+# endregion
 
+# region ===== Game Setup =====
 py.init()
 state = 'MENU'
 difficulty = 'MEDIUM'
 
-# SCREEN SETUP
 screen = py.display.set_mode((900, 680))
 GAME_ICON = py.image.load('Resources/Yellow.png')
 py.display.set_caption('Dragon Boat Race')
 py.display.set_icon(GAME_ICON)
+# endregion
 
-# CONSTANTS
+# region ===== CONSTANTS =====
 BACKGROUND = py.image.load('Resources/HoTay.jpg').convert_alpha()
 BARRIER = py.image.load('Resources/Phao.png').convert_alpha()
 WAVE = py.image.load('Resources/water.png').convert_alpha()
-ROCK_IMG = py.transform.scale(py.image.load('Resources/rocks.svg'), (60, 30))
-YELLOW_SHIP_G = py.transform.scale(GAME_ICON, (120, 50))
-GREEN_SHIP_G = py.transform.scale(py.image.load('Resources/Green.png'), (120, 50))
-ENERGY_BALL = py.transform.scale(py.image.load('Resources/NangLuong.png'), (40, 40))
-FIREWORK_IMG = py.image.load('Resources/firework_combined.png')
-PROGRESS_BAR = py.transform.scale(py.image.load('Resources/bar.png'), (400, 50))
-YELLOW_BALL = py.transform.scale(py.image.load('Resources/yellow_ball.png'), (25, 25))
-GREEN_BALL = py.transform.scale(py.image.load('Resources/green_ball.png'), (25, 25))
+ROCK_IMG = py.transform.scale(py.image.load('Resources/rocks.svg'), (60, 30)).convert_alpha()
+YELLOW_SHIP_G = py.transform.scale(GAME_ICON, (120, 50)).convert_alpha()
+GREEN_SHIP_G = py.transform.scale(py.image.load('Resources/Green.png'), (120, 50)).convert_alpha()
+ENERGY_BALL = py.transform.scale(py.image.load('Resources/NangLuong.png'), (40, 40)).convert_alpha()
+FIREWORK_IMG = py.image.load('Resources/firework_combined.png').convert_alpha()
+PROGRESS_BAR = py.transform.scale(py.image.load('Resources/bar.png'), (400, 50)).convert_alpha()
+YELLOW_BALL = py.transform.scale(py.image.load('Resources/yellow_ball.png'), (25, 25)).convert_alpha()
+GREEN_BALL = py.transform.scale(py.image.load('Resources/green_ball.png'), (25, 25)).convert_alpha()
 
 # SUB SETTINGS RESOURCES
-TRASH_BIN = py.transform.scale(py.image.load('Resources/trashbin.png'), (50, 50))
-triangle = py.image.load('Resources/triangle.png')
+TRASH_BIN = py.transform.scale(py.image.load('Resources/trashbin.png'), (50, 50)).convert_alpha()
+triangle = py.image.load('Resources/triangle.png').convert_alpha()
 triangle2 = triangle.copy()
 triangle3 = triangle.copy()
 triangle4 = triangle.copy()
@@ -60,17 +62,17 @@ SETTING_VI = py.transform.scale(py.image.load('Resources/Setting/set_vi.png'), (
 SETTING_EN = py.transform.scale(py.image.load('Resources/Setting/set_en.png'), (230, 100)).convert_alpha()
 SETTING_MENU_VI = py.image.load('Resources/Setting/bg_set_vn_no_bg.png').convert_alpha()
 SETTING_MENU_EN = py.image.load('Resources/Setting/bg_set_en_no_bg.png').convert_alpha()
-MENU_BG_VI = py.image.load('Resources/bg1_vn_no_bg.png')
+MENU_BG_VI = py.image.load('Resources/bg1_vn_no_bg.png').convert_alpha()
 MENU_BG_EN = py.image.load('Resources/bg1_en_no_bg.png').convert_alpha()
-CLOSE = py.transform.scale(py.image.load('Resources/Setting/close.png'), (100, 100))
-toggle_ON_VI = py.transform.scale(py.image.load('Resources/Setting/on_vn.png'), (175, 75))
-toggle_OFF_VI = py.transform.scale(py.image.load('Resources/Setting/off_vn.png'), (175, 75))
-toggle_ON_EN = py.transform.scale(py.image.load('Resources/Setting/on_en.png'), (175, 75))
-toggle_OFF_EN = py.transform.scale(py.image.load('Resources/Setting/off_en.png'), (175, 75))
+CLOSE = py.transform.scale(py.image.load('Resources/Setting/close.png'), (100, 100)).convert_alpha()
+toggle_ON_VI = py.transform.scale(py.image.load('Resources/Setting/on_vn.png'), (175, 75)).convert_alpha()
+toggle_OFF_VI = py.transform.scale(py.image.load('Resources/Setting/off_vn.png'), (175, 75)).convert_alpha()
+toggle_ON_EN = py.transform.scale(py.image.load('Resources/Setting/on_en.png'), (175, 75)).convert_alpha()
+toggle_OFF_EN = py.transform.scale(py.image.load('Resources/Setting/off_en.png'), (175, 75)).convert_alpha()
 
 # PLAYER SETTINGS:
-YELLOW_SHIP = py.transform.scale(py.image.load('Resources/Yellow.png'), (200, 80))
-GREEN_SHIP = py.transform.scale(py.image.load('Resources/Green.png'), (200, 80))
+YELLOW_SHIP = py.transform.scale(py.image.load('Resources/Yellow.png'), (200, 80)).convert_alpha()
+GREEN_SHIP = py.transform.scale(py.image.load('Resources/Green.png'), (200, 80)).convert_alpha()
 
 # BOUNDING BOX
 PLAY_BOX = py.Rect(220, 405, 170, 50)
@@ -93,11 +95,11 @@ WIN_sfx = py.mixer.Sound('Resources/WinSFX.mp3')
 BG_music.play(-1)
 
 # Finish line
-FINISH_LINE = py.transform.scale(py.image.load('Resources/finish_line.png'), (200, 265))
+FINISH_LINE = py.transform.scale(py.image.load('Resources/finish_line.png'), (200, 265)).convert_alpha()
 
 # Surfaces
-TS_SURFACE = py.Surface((900, 680)).convert_alpha()
-triangle_SURFACE = py.Surface((50, 45)).convert_alpha()
+TS_SURFACE = py.Surface(screen.get_size()).convert()
+triangle_SURFACE = py.Surface((50, 45)).convert()
 triangle_SURFACE2 = triangle_SURFACE.copy()
 triangle_SURFACE3 = triangle_SURFACE.copy()
 triangle_SURFACE4 = triangle_SURFACE.copy()
@@ -106,9 +108,11 @@ triangle_SURFACE2.set_alpha(0)
 triangle_SURFACE3.set_alpha(0)
 triangle_SURFACE4.set_alpha(0)
 TS_SURFACE.set_alpha(0)
-BRIGHTNESS_SURFACE = py.Surface((900, 680)).convert()
+BRIGHTNESS_SURFACE = py.Surface(screen.get_size()).convert()
 BRIGHTNESS_SURFACE.fill((0, 0, 0))
+# endregion
 
+# region ===== Text & Transparency =====
 # WINNER_FONT TEXT
 winner_text = None
 # TRANSPARENCY/HOVERING EFFECT
@@ -118,7 +122,9 @@ replay_transparency = 255
 close_transparency = 255
 delete_saved_transparency = 255
 triangle_transparency = triangle2_transparency = triangle3_transparency = triangle4_transparency = 255
+# endregion
 
+# region ===== Position related stuffs =====
 # POSITION
 energy_player1 = energy_player2 = 0
 x_bg = 0
@@ -131,22 +137,25 @@ rocks = []
 fireworks = []
 player1_ball_x = player2_ball_x = 250
 
-# ENERGY BALL'S CONFIGURATION
 x_energy_ball1 = x_energy_ball2 = 900
 y_energy_ball1 = random.randint(130, 350)
 y_energy_ball2 = random.randint(430, 620)
+
+# DISTANCE TRACKING
+distance_to_finish_line1 = 0
+distance_to_finish_line2 = 0
+finish_line_x = 40000
+# endregion
+
+# region ===== Configuration =====
 energy_ball1_is_visible = True
 energy_ball2_is_visible = True
 energy_ball_timer1 = 0
 energy_ball_timer2 = 0
 energy_ball_respawn_time = 10 * 1000
+# endregion
 
-# DISTANCE TRACKING
-distance_to_finish_line1 = 0
-distance_to_finish_line2 = 0
-finish_line_base_x = 40000
-
-# PERKS
+# region ===== PERKS =====
 backend_perks = pk.get_perks('ENGLISH')
 
 # Special Perks for P1
@@ -181,8 +190,9 @@ ts_start2 = 0
 last_create_rocks2 = -9999
 create_rocks_start2 = 0
 ability_counts2 = 0
+# endregion
 
-# List of Colors
+# region ===== Lists =====
 bg_color = (0, 166, 82)
 colors = [
     bg_color,  # [0] Default Green
@@ -224,11 +234,15 @@ buttons = [
     py.Rect(0, 50, 450, 100),
     py.Rect(0, 400, 450, 100)
 ]
-# buttons
+
+
+# endregion
+
+# region ===== Classes =====
 
 
 class Slider:
-    def __init__(self, x, y, w, h, value=0.5, min_val=0, max_val=1, knob_radius=14, offset=90, integer=False):
+    def __init__(self, x, y, w, h, value=0.5, min_val=0, max_val=1, knob_radius=14, offset=90, integer=False, display_mode='down-to-up'):
         self.x = x
         self.y = y
         self.w = w
@@ -240,6 +254,7 @@ class Slider:
         self.knob_radius = knob_radius
         self.dragging = False
         self.integer = integer
+        self.display_mode = display_mode
 
     def handle_event(self, event):
         if event.type == py.MOUSEBUTTONDOWN and event.button == 1:
@@ -277,7 +292,10 @@ class Slider:
         knob_x = self.x + ratio * self.w
         knob_color = (100, 150, 255) if self.dragging else (50, 120, 255)
         py.draw.circle(surface, knob_color, (int(knob_x), self.y), self.knob_radius)
-        display_percent = int(ratio * 100)
+        if self.display_mode == 'up-to-down':
+            display_percent = 100 - int(ratio * 100)
+        else:
+            display_percent = int(ratio * 100)
         if not self.integer:  # Cho thêm 1 lựa chọn là sử dụng % hay giá trị thô
             text_surface = font.render(f"{label}: {display_percent}%", True,
                                        (255, 255, 255) if dark_mode else (0, 0, 0))
@@ -496,12 +514,15 @@ class Dropdown:
                 surface.blit(text_surface, text_rect)  # Vẽ text lên màn hình
 
 
+# endregion
+
+# region ===== UI Elements Setup =====
 # SETTING SLIDER + INPUT
 volume_slider = Slider(225, 300, 150, 20, value=0.5, min_val=0, max_val=1, knob_radius=14)
 volume_input = InputBox(270, 340, 60, 40, text='50')
 
 # ADV SETTING SLIDER + INPUT
-dark_slider = Slider(225, 550, 150, 20, value=0, min_val=0, max_val=170, knob_radius=14)
+dark_slider = Slider(225, 550, 150, 20, value=0, min_val=0, max_val=170, knob_radius=14, display_mode='up-to-down')
 dark_input = InputBox(270, 590, 60, 40, text='0', min_val=0, max_val=170, multiplier=170)
 firework_slider = Slider(430, 550, 150, 20, value=0, min_val=0, max_val=50, knob_radius=14, integer=True)
 firework_input = InputBox(475, 590, 60, 40, text='10', min_val=0, max_val=50, multiplier=50)
@@ -517,6 +538,7 @@ green_input = InputBox(400, 200, 60, 40, text='166', min_val=0, max_val=255, mul
 blue_input = InputBox(400, 300, 60, 40, text='82', min_val=0, max_val=255, multiplier=255)
 
 save_input = InputBox(325, 400, 250, 50, text='', num_val=False, lost_focus=True)
+
 # DROPDOWN CONFIG
 font = py.font.SysFont('Arial', 25)
 language_dropdown = Dropdown(390, 300, 150, 40, ['ENGLISH', 'T. Việt'], 'ENGLISH', font)
@@ -531,7 +553,13 @@ color_dropdown = Dropdown(700, 150, 170, 40, [
 ], 'Default', font, extension=False)
 saved_color_dropdown = Dropdown(500, 150, 170, 40, ['Default'], 'Default', font)
 previous_color_idx = 0
-clock = py.time.Clock()
+
+# endregion
+
+# region ===== Functions =====
+
+
+# region ===== Save & Load =====
 
 
 def save_config(save_list, saved_color_list):
@@ -542,7 +570,7 @@ def save_config(save_list, saved_color_list):
             "TOGGLE fireworks": toggle_fireworks,
             "TOGGLE BRIGHTNESS": toggle_brightness,
             "TOGGLE FPS": toggle_fps,
-            "TOGGLE PLAYER_MARK": toggle_visible_collision,
+            "TOGGLE VISIBLE COLLISION": toggle_visible_collision,
             "TOGGLE DISPLAY SPEED": toggle_display_speed,
             "P1 SKIN": p1_skin,
             "P2 SKIN": p2_skin,
@@ -580,10 +608,10 @@ def load_config():
         toggle_music = config.get("toggle_music", True)
         toggle_sfx = config.get("toggle_sfx", True)
         toggle_fireworks = config.get("toggle_fireworks", True)
-        toggle_brightness = config.get("toggle_brightness", False)
+        toggle_brightness = config.get("TOGGLE BRIGHTNESS", False)
         toggle_fps = config.get("toggle_fps", True)
-        toggle_visible_collision = config.get("toggle_visible_collision", True)
-        toggle_display_speed = config.get("toggle_display_speed", False)
+        toggle_visible_collision = config.get("TOGGLE VISIBLE COLLISION", True)
+        toggle_display_speed = config.get("TOGGLE DISPLAY SPEED", False)
         toggle_dark_mode = config.get("toggle_dark_mode", False)
         red_slider.value = config.get("RED", 30)
         blue_slider.value = config.get("BLUE", 30)
@@ -629,6 +657,9 @@ def load_config():
         return ["Default"], [(0, 166, 82)]
 
 
+# endregion
+
+# region ===== Spawning Objects =====
 def spawn_rock(NUM, TEAM):
     for _ in range(NUM):
         while True:
@@ -650,6 +681,20 @@ def spawn_rock(NUM, TEAM):
                 break
 
 
+def firework_spawner(NUM):
+    for _ in range(NUM):
+        X_POSITION = random.randint(200, 700)
+        Y_POSITION = random.randint(600, 900)
+        FIREWORK_SPEED = random.randint(5, 10)
+        MAXIMUM_Y = random.randint(150, 250)
+        fireworks.append([X_POSITION, Y_POSITION, FIREWORK_SPEED, MAXIMUM_Y])
+
+
+# endregion
+
+# region ===== Event Handling =====
+
+# check collision event
 def check_collision():
     global speed_for_player1, speed_for_player2
     global x_energy_ball1, x_energy_ball2, y_energy_ball1, y_energy_ball2
@@ -726,15 +771,7 @@ def check_collision():
                 ENERGY_BALL_SOUND.play(0)
 
 
-def firework_spawner(NUM):
-    for _ in range(NUM):
-        X_POSITION = random.randint(200, 700)
-        Y_POSITION = random.randint(600, 900)
-        FIREWORK_SPEED = random.randint(5, 10)
-        MAXIMUM_Y = random.randint(150, 250)
-        fireworks.append([X_POSITION, Y_POSITION, FIREWORK_SPEED, MAXIMUM_Y])
-
-
+# real time fireworks handling
 def update_fireworks(dt=1):
     global fireworks
     new_fireworks = []
@@ -746,6 +783,7 @@ def update_fireworks(dt=1):
     fireworks = new_fireworks
 
 
+# reset game event
 def reset_game():
     global x_bg, y_player1, y_player2, x_wave1, x_wave2
     global speed_for_player1, speed_for_player2, rocks, fireworks
@@ -835,6 +873,9 @@ def reset_game():
     winner_text = None
 
 
+# endregion
+
+# region ===== Displaying Objects =====
 def draw_toggle(x, y, status, text_en, text_vi, on_img_en, off_img_en, on_img_vi, off_img_vi):
     text_to_render = text_vi if LANGUAGE == 'T. Việt' else text_en
     text_surface = font.render(text_to_render, True, (0, 0, 0) if not toggle_dark_mode else (255, 255, 255))
@@ -848,45 +889,48 @@ def draw_toggle(x, y, status, text_en, text_vi, on_img_en, off_img_en, on_img_vi
 
 def display():
     global toggle_fps, toggle_brightness, CLOSE, CLOSE_BOX, state
-    global dark_surface
-    if state != 'MENU':
+    global BRIGHTNESS_SURFACE
+    if state not in ['MENU', 'END']:
         screen.blit(CLOSE, CLOSE.get_rect(center=CLOSE_BOX.center))
     if toggle_fps:
         fps_text = font.render(f"FPS: {int(clock.get_fps())}", True, (255, 255, 255))
         screen.blit(fps_text, (0, 350))
     if toggle_brightness:
-        dark_surface.set_alpha(int(dark_slider.value))
-        screen.blit(dark_surface, (0, 0))
+        BRIGHTNESS_SURFACE.set_alpha(int(dark_slider.value))
+        screen.blit(BRIGHTNESS_SURFACE, (0, 0))
 
 
-def lerp(c1, c2, a):
-    return tuple(int(c1[i] + (c2[i] - c1[i]) * a) for i in range(3))
+def display_plr():
+    global p1_skin, p2_skin
+    global YELLOW_SHIP_G, GREEN_SHIP_G
+    global y_player1, y_player2
+    global player1_ball_x, player2_ball_x
+
+    if p1_skin == 'Yellow':
+        screen.blit(YELLOW_SHIP_G, (0, y_player1))
+        screen.blit(YELLOW_BALL, (player1_ball_x, 5))
+    else:
+        screen.blit(GREEN_SHIP_G, (0, y_player1))
+        screen.blit(GREEN_BALL, (player1_ball_x, 5))
+    if p2_skin == 'Green':
+        screen.blit(GREEN_SHIP_G, (0, y_player2))
+        screen.blit(GREEN_BALL, (player2_ball_x, 50))
+    else:
+        screen.blit(YELLOW_SHIP_G, (0, y_player2))
+        screen.blit(YELLOW_BALL, (player2_ball_x, 50))
 
 
-def play_sfx():
-    global toggle_sfx
-    if toggle_sfx:
-        CLICK_sfx.play(0)
+def draw_energy_bars():
+    max_width = 100
+    # Player 1
+    ratio1 = min(energy_player1 / 100, 1.0)
+    py.draw.rect(screen, (255, 255, 0), (0, y_player1 - 20, int(max_width * ratio1), 10))
+    py.draw.rect(screen, (255, 255, 255), (0, y_player1 - 20, max_width, 10), 2)
 
-
-def return_text_wrapped(text, font, color, max_width):
-    words = text.split(' ')
-    lines = []
-    current_line = ""
-
-    for word in words:
-        test_line = current_line + (" " if current_line else "") + word
-        # render thử để đo chiều rộng
-        if font.size(test_line)[0] <= max_width:
-            current_line = test_line  # nếu < cd tối đa thì viết tiếp
-        else:
-            lines.append(current_line)  # nếu đã lớn hơn test thì append vào
-            current_line = word  # Đặt dòng mới thành từ mà thêm vào sẽ quá max_width
-    if current_line:  # còn chữ ở dòng cuối thì thêm vào
-        lines.append(current_line)
-
-    # return lại 1 list đã tách chữ
-    return [font.render(line, True, color) for line in lines]
+    # Player 2
+    ratio2 = min(energy_player2 / 100, 1.0)
+    py.draw.rect(screen, (255, 255, 0), (0, y_player2 - 20, int(max_width * ratio2), 10))
+    py.draw.rect(screen, (255, 255, 255), (0, y_player2 - 20, max_width, 10), 2)
 
 
 def blit_text_wrapped(screen, text, font, color, center_x, center_y, max_width):
@@ -930,21 +974,24 @@ def blit_text_wrapped(screen, text, font, color, center_x, center_y, max_width):
         screen.blit(text_surface, text_rect)
 
 
+# endregion
+
+# region ===== Returning Strings & Tuples =====
+def lerp(c1, c2, a):
+    return tuple(int(c1[i] + (c2[i] - c1[i]) * a) for i in range(3))
+
+
 def shorten_text(text, max_len=8):
     return text if len(text) <= max_len else text[:max_len - 1] + "..."
 
 
-def draw_energy_bars():
-    max_width = 100
-    # Player 1
-    ratio1 = min(energy_player1 / 100, 1.0)
-    py.draw.rect(screen, (255, 255, 0), (0, y_player1 - 20, int(max_width * ratio1), 10))
-    py.draw.rect(screen, (255, 255, 255), (0, y_player1 - 20, max_width, 10), 2)
+# endregion
 
-    # Player 2
-    ratio2 = min(energy_player2 / 100, 1.0)
-    py.draw.rect(screen, (255, 255, 0), (0, y_player2 - 20, int(max_width * ratio2), 10))
-    py.draw.rect(screen, (255, 255, 255), (0, y_player2 - 20, max_width, 10), 2)
+# region ===== Miscellaneous - Setting Stuff & SFX =====
+def play_sfx():
+    global toggle_sfx
+    if toggle_sfx:
+        CLICK_sfx.play(0)
 
 
 def set_transparency():
@@ -1007,29 +1054,18 @@ def set_default_speed(normal, special):
         normal_speed_for_player1 = 999
 
 
-def display_plr():
-    global p1_skin, p2_skin
-    global YELLOW_SHIP_G, GREEN_SHIP_G
-    global y_player1, y_player2
-    global player1_ball_x, player2_ball_x
+# endregion
 
-    if p1_skin == 'Yellow':
-        screen.blit(YELLOW_SHIP_G, (0, y_player1))
-        screen.blit(YELLOW_BALL, (player1_ball_x, 5))
-    else:
-        screen.blit(GREEN_SHIP_G, (0, y_player1))
-        screen.blit(GREEN_BALL, (player1_ball_x, 5))
-    if p2_skin == 'Green':
-        screen.blit(GREEN_SHIP_G, (0, y_player2))
-        screen.blit(GREEN_BALL, (player2_ball_x, 50))
-    else:
-        screen.blit(YELLOW_SHIP_G, (0, y_player2))
-        screen.blit(YELLOW_BALL, (player2_ball_x, 50))
+# endregion
 
-
+# region ===== Miscellaneous =====
 save_list, saved_color_list = load_config()
+clock = py.time.Clock()
+# endregion
+
+# region ===== Main Game =====
 while True:
-    MOUSE_POS = py.mouse.get_pos()
+    mouse_pos = py.mouse.get_pos()
     set_volume()
     set_transparency()
     LANGUAGE = language_dropdown.options[language_dropdown.selected_index]
@@ -1040,6 +1076,7 @@ while True:
     DIFFICULTY = difficulty_dropdown.options[difficulty_dropdown.selected_index]
     color_choice = color_dropdown.options[color_dropdown.selected_index]
     saved_color_choice = saved_color_dropdown.options[saved_color_dropdown.selected_index]
+    # region ===== Background Colors =====
     if color_choice == 'Custom' or color_choice == 'Tùy chỉnh':
         BG_COLOR = (int(red_slider.value), int(green_slider.value), int(blue_slider.value))
     elif color_choice == 'Rainbow' or color_choice == 'Cầu vồng':
@@ -1051,24 +1088,26 @@ while True:
         BG_COLOR = lerp(rgb_colors[index], rgb_colors[next_index], alpha)
     else:
         BG_COLOR = colors[color_dropdown.selected_index]
+    # endregion
 
-    # FPS BASED
-    dt = clock.tick(120) / 1000
-    dt_scale = dt * 80
+    # region ===== Handling Game Events =====
     for event in py.event.get():
+        # region ===== Close Game =====
         if event.type == py.QUIT:
             save_config(save_list, saved_color_list)
             py.quit()
             sys.exit()
-        # ===== MENU =====
+        # endregion
+
+        # region ===== Game Menu Event Handling =====
         if state == 'MENU':
-            if PLAY_BOX.collidepoint(MOUSE_POS):
+            if PLAY_BOX.collidepoint(mouse_pos):
                 play_transparency = 150
                 if event.type == py.MOUSEBUTTONDOWN and event.button == 1:
                     state = 'BASE'
                     play_sfx()
                     reset_game()
-            elif SETTING_BOX.collidepoint(MOUSE_POS):
+            elif SETTING_BOX.collidepoint(mouse_pos):
                 setting_transparency = 150
                 if event.type == py.MOUSEBUTTONDOWN and event.button == 1:
                     play_sfx()
@@ -1076,10 +1115,11 @@ while True:
             else:
                 play_transparency = 255
                 setting_transparency = 255
+        # endregion
 
-        # ===== SETTINGS =====
+        # region ===== Settings Event Handling =====
         elif state == 'SETTINGS':
-            if CLOSE_BOX.collidepoint(MOUSE_POS):
+            if CLOSE_BOX.collidepoint(mouse_pos):
                 close_transparency = 150
                 if event.type == py.MOUSEBUTTONDOWN and event.button == 1:
                     state = 'MENU'
@@ -1090,7 +1130,7 @@ while True:
                 close_transparency = 255
             buttons[0].centerx = screen.get_width() // 2
             buttons[0].y = 550
-            if buttons[0].collidepoint(MOUSE_POS):
+            if buttons[0].collidepoint(mouse_pos):
                 if event.type == py.MOUSEBUTTONDOWN and event.button == 1:
                     state = 'ADV SETTINGS'
                     play_sfx()
@@ -1099,8 +1139,12 @@ while True:
             volume_input.text = str(int(volume_slider.value * 100))
             language_dropdown.handle_event(event)
             difficulty_dropdown.handle_event(event)
+        # endregion
+
+        # region ===== Advanced Settings Event Handling
         elif state == 'ADV SETTINGS':
-            if CLOSE_BOX.collidepoint(MOUSE_POS):
+            # region ===== Close Button Transparency =====
+            if CLOSE_BOX.collidepoint(mouse_pos):
                 close_transparency = 150
                 if event.type == py.MOUSEBUTTONDOWN and event.button == 1:
                     state = 'SETTINGS'
@@ -1109,6 +1153,8 @@ while True:
                         GAME_music.stop()
             else:
                 close_transparency = 255
+            # endregion
+            # region ===== UI Elements Event Handling =====
             dark_slider.handle_event(event)
             dark_input.handle_event(event, dark_slider)
             dark_input.text = str(int(dark_slider.value))
@@ -1118,26 +1164,27 @@ while True:
             sfx_slider.handle_event(event)
             sfx_input.handle_event(event, sfx_slider)
             sfx_input.text = str(int(sfx_slider.value * 100))
+            # endregion
+            # region ===== Toggle Event Handling =====
             if event.type == py.MOUSEBUTTONDOWN and event.button == 1:
-                mouse_x, mouse_y = event.pos
                 if draw_toggle(200, 100, toggle_music, 'Music', 'Âm nhạc', toggle_ON_EN, toggle_OFF_EN, toggle_ON_VI,
-                               toggle_OFF_VI).collidepoint(mouse_x, mouse_y):
+                               toggle_OFF_VI).collidepoint(mouse_pos):
                     toggle_music = not toggle_music
                     play_sfx()
                 elif draw_toggle(200, 250, toggle_sfx, 'Sound Effects', 'H.Ứng âm thanh', toggle_ON_EN,
-                                 toggle_OFF_EN, toggle_ON_VI, toggle_OFF_VI).collidepoint(mouse_x, mouse_y):
+                                 toggle_OFF_EN, toggle_ON_VI, toggle_OFF_VI).collidepoint(mouse_pos):
                     toggle_sfx = not toggle_sfx
                     play_sfx()
                 elif draw_toggle(200, 400, toggle_fireworks, 'Fireworks', 'Pháo hoa', toggle_ON_EN, toggle_OFF_EN,
-                                 toggle_ON_VI, toggle_OFF_VI).collidepoint(mouse_x, mouse_y):
+                                 toggle_ON_VI, toggle_OFF_VI).collidepoint(mouse_pos):
                     toggle_fireworks = not toggle_fireworks
                     play_sfx()
                 elif draw_toggle(400, 100, toggle_display_speed, 'Speed Display', 'Hiển thị tốc độ', toggle_ON_EN,
-                                 toggle_OFF_EN, toggle_ON_VI, toggle_OFF_VI).collidepoint(mouse_x, mouse_y):
+                                 toggle_OFF_EN, toggle_ON_VI, toggle_OFF_VI).collidepoint(mouse_pos):
                     toggle_display_speed = not toggle_display_speed
                     play_sfx()
                 elif draw_toggle(400, 250, toggle_dark_mode, 'Dark Mode', 'Chế độ tối', toggle_ON_EN, toggle_OFF_EN,
-                                 toggle_ON_VI, toggle_OFF_VI).collidepoint(mouse_x, mouse_y):
+                                 toggle_ON_VI, toggle_OFF_VI).collidepoint(mouse_pos):
                     toggle_dark_mode = not toggle_dark_mode
                     play_sfx()
                     if toggle_dark_mode:
@@ -1146,25 +1193,30 @@ while True:
                     else:
                         color_dropdown.selected_index = previous_color_idx  # khôi phục màu cũ
                 elif draw_toggle(600, 100, toggle_brightness, 'Brightness', 'Nền tối', toggle_ON_EN, toggle_OFF_EN,
-                                 toggle_ON_VI, toggle_OFF_VI).collidepoint(mouse_x, mouse_y):
+                                 toggle_ON_VI, toggle_OFF_VI).collidepoint(mouse_pos):
                     toggle_brightness = not toggle_brightness
                     play_sfx()
                 elif draw_toggle(600, 250, toggle_fps, 'Show FPS', 'Hiện FPS', toggle_ON_EN, toggle_OFF_EN,
-                                 toggle_ON_VI, toggle_OFF_VI).collidepoint(mouse_x, mouse_y):
+                                 toggle_ON_VI, toggle_OFF_VI).collidepoint(mouse_pos):
                     toggle_fps = not toggle_fps
                     play_sfx()
                 elif draw_toggle(400, 400, toggle_visible_collision, "Players' Mark", 'Đánh dấu N.chơi', toggle_ON_EN,
-                                 toggle_OFF_EN, toggle_ON_VI, toggle_OFF_VI).collidepoint(mouse_x, mouse_y):
+                                 toggle_OFF_EN, toggle_ON_VI, toggle_OFF_VI).collidepoint(mouse_pos):
                     toggle_visible_collision = not toggle_visible_collision
                     play_sfx()
-                elif buttons[1].collidepoint(MOUSE_POS):
+                elif buttons[1].collidepoint(mouse_pos):
                     state = 'VSETTINGS'
                     play_sfx()
-                elif buttons[3].collidepoint(MOUSE_POS):
+                elif buttons[3].collidepoint(mouse_pos):
                     state = 'PSETTINGS'
                     play_sfx()
+            # endregion
+        # endregion
+
+        # region ===== Background Settings Event Handling =====
         elif state == 'VSETTINGS':
-            if CLOSE_BOX.collidepoint(MOUSE_POS):
+            # region ===== Close Button Transparency =====
+            if CLOSE_BOX.collidepoint(mouse_pos):
                 close_transparency = 150
                 if event.type == py.MOUSEBUTTONDOWN and event.button == 1:
                     state = 'ADV SETTINGS'
@@ -1173,6 +1225,10 @@ while True:
                         GAME_music.stop()
             else:
                 close_transparency = 255
+            # endregion
+
+            # region ===== UI Elements Event Handling =====
+            # region ===== Sliders & Inputs & Dropdowns =====
             red_slider.handle_event(event)
             red_input.handle_event(event, red_slider)
             red_input.text = str(int(red_slider.value))
@@ -1214,7 +1270,10 @@ while True:
                 toggle_dark_mode = True
             else:
                 toggle_dark_mode = False
-            if buttons[2].collidepoint(MOUSE_POS):
+            # endregion
+
+            # region ===== Buttons =====
+            if buttons[2].collidepoint(mouse_pos):
                 if event.type == py.MOUSEBUTTONDOWN and event.button == 1:
                     save_name = save_input.text
                     if save_name != '':
@@ -1222,7 +1281,7 @@ while True:
                             save_list.append(save_name)
                             saved_color_list.append(
                                 (int(red_slider.value), int(green_slider.value), int(blue_slider.value)))
-            if TRASH_BOX.collidepoint(MOUSE_POS):
+            if TRASH_BOX.collidepoint(mouse_pos):
                 delete_saved_transparency = 150
                 if event.type == py.MOUSEBUTTONDOWN and event.button == 1:
                     if saved_color_choice != 'Default' and saved_color_choice != 'Mặc định':
@@ -1236,20 +1295,28 @@ while True:
                             pass
             else:
                 delete_saved_transparency = 255
+            # endregion
+            # endregion
+        # endregion
+
+        # region ===== Player Settings Event Handling =====
         elif state == 'PSETTINGS':
+            # region ===== Handling Transparency =====
             triangle_SURFACE.set_alpha(0)
             triangle_SURFACE2.set_alpha(0)
             triangle_SURFACE3.set_alpha(0)
             triangle_SURFACE4.set_alpha(0)
 
-            if CLOSE_BOX.collidepoint(MOUSE_POS):
+            if CLOSE_BOX.collidepoint(mouse_pos):
                 close_transparency = 150
                 if event.type == py.MOUSEBUTTONDOWN and event.button == 1:
                     state = 'ADV SETTINGS'
                     play_sfx()
             else:
                 close_transparency = 250
-            if triangle_BOX.collidepoint(MOUSE_POS):
+            # endregion
+            # region ===== Next / Forward Button =====
+            if triangle_BOX.collidepoint(mouse_pos):
                 triangle_transparency = 150
                 if event.type == py.MOUSEBUTTONDOWN and event.button == 1:
                     play_sfx()
@@ -1261,7 +1328,7 @@ while True:
                         p1_skin = 'Yellow'
             else:
                 triangle_transparency = 255
-            if triangle_BOX2.collidepoint(MOUSE_POS):
+            if triangle_BOX2.collidepoint(mouse_pos):
                 triangle2_transparency = 150
                 if event.type == py.MOUSEBUTTONDOWN and event.button == 1:
                     play_sfx()
@@ -1273,7 +1340,7 @@ while True:
                         p2_skin = 'Green'
             else:
                 triangle2_transparency = 255
-            if triangle_BOX3.collidepoint(MOUSE_POS):
+            if triangle_BOX3.collidepoint(mouse_pos):
                 triangle3_transparency = 150
                 if event.type == py.MOUSEBUTTONDOWN and event.button == 1:
                     play_sfx()
@@ -1282,7 +1349,7 @@ while True:
                     current_p1_perk_idx = (current_p1_perk_idx + 1) % len(perks)
             else:
                 triangle3_transparency = 255
-            if triangle_BOX4.collidepoint(MOUSE_POS):
+            if triangle_BOX4.collidepoint(mouse_pos):
                 triangle4_transparency = 150
                 if event.type == py.MOUSEBUTTONDOWN and event.button == 1:
                     play_sfx()
@@ -1291,10 +1358,12 @@ while True:
                     current_p2_perk_idx = (current_p2_perk_idx + 1) % len(perks)
             else:
                 triangle4_transparency = 255
+            # endregion
+        # endregion
 
-        # ===== IN GAME =====
+        # region ===== Core Game Event Handling =====
         elif state == 'BASE':
-            if CLOSE_BOX.collidepoint(MOUSE_POS):
+            if CLOSE_BOX.collidepoint(mouse_pos):
                 close_transparency = 150
                 if event.type == py.MOUSEBUTTONDOWN and event.button == 1:
                     state = 'MENU'
@@ -1302,7 +1371,7 @@ while True:
                     if toggle_music:
                         GAME_music.stop()
                         BG_music.play(-1)
-            elif py.Rect(0, 0, 165, 50).collidepoint(MOUSE_POS):
+            elif py.Rect(0, 0, 165, 50).collidepoint(mouse_pos):
                 setting_transparency = 150
                 if event.type == py.MOUSEBUTTONDOWN and event.button == 1:
                     state = 'SETTINGS'
@@ -1312,10 +1381,11 @@ while True:
                         BG_music.play(-1)
             else:
                 close_transparency = setting_transparency = 255
+        # endregion
 
-        # ===== END GAME =====
+        # region ===== End Game Event Handling =====
         elif state == 'END':
-            if REPLAY_BOX.collidepoint(MOUSE_POS):
+            if REPLAY_BOX.collidepoint(mouse_pos):
                 replay_transparency = 150
                 if event.type == py.MOUSEBUTTONDOWN and event.button == 1:
                     play_sfx()
@@ -1324,7 +1394,7 @@ while True:
                         GAME_music.stop()
                         GAME_music.play(-1)
                     reset_game()
-            elif buttons[12].collidepoint(MOUSE_POS):
+            elif buttons[12].collidepoint(mouse_pos):
                 setting_transparency = 150
                 if event.type == py.MOUSEBUTTONDOWN and event.button == 1:
                     state = 'SETTINGS'
@@ -1332,8 +1402,10 @@ while True:
             else:
                 replay_transparency = 255
                 setting_transparency = 255
+        # endregion
+    # endregion
 
-    # ===== MENU =====
+    # region ===== Displaying Game Menu =====
     if state == 'MENU':
         screen.fill(BG_COLOR)
 
@@ -1348,8 +1420,9 @@ while True:
             screen.blit(SETTING_VI, (490, 380))
             py.display.set_caption('Đua thuyền rồng')
         display()
+    # endregion
 
-    # ===== SETTINGS =====
+    # region ===== Displaying Settings UI =====
     elif state == 'SETTINGS':
         screen.fill(BG_COLOR)
 
@@ -1372,13 +1445,12 @@ while True:
             'ADVANCED SETTINGS' if LANGUAGE == 'ENGLISH' else 'CÀI ĐẶT NÂNG CAO', True, (0, 0, 0))
         screen.blit(ADVANCED_SETTINGS_TEXT, ADVANCED_SETTINGS_TEXT.get_rect(center=buttons[0].center))
         display()
+    # endregion
+
+    # region ===== Displaying Advanced Settings UI =====
     elif state == 'ADV SETTINGS':
         screen.fill(BG_COLOR)
-        if toggle_brightness:
-            dark_surface = py.Surface((900, 680))
-            dark_surface.fill((0, 0, 0))
-            dark_surface.set_alpha(int(dark_slider.value))
-            screen.blit(dark_surface, (0, 0))
+        # region ===== Draw Toggles =====
         draw_toggle(200, 100, toggle_music, 'Music', 'Âm nhạc', toggle_ON_EN, toggle_OFF_EN, toggle_ON_VI,
                     toggle_OFF_VI)
         draw_toggle(200, 250, toggle_sfx, 'Sound Effects', 'H.Ứng âm thanh', toggle_ON_EN, toggle_OFF_EN,
@@ -1390,13 +1462,16 @@ while True:
                     toggle_OFF_VI)
         draw_toggle(600, 250, toggle_fps, 'Show FPS', 'Hiện FPS', toggle_ON_EN, toggle_OFF_EN, toggle_ON_VI,
                     toggle_OFF_VI)
-        draw_toggle(400, 400, toggle_visible_collision, "Highlight Players", 'Đánh dấu người chơi', toggle_ON_EN, toggle_OFF_EN,
+        draw_toggle(400, 400, toggle_visible_collision, "Highlight Players", 'Đánh dấu người chơi', toggle_ON_EN,
+                    toggle_OFF_EN,
                     toggle_ON_VI, toggle_OFF_VI)
         draw_toggle(400, 100, toggle_display_speed, 'Speed Display', 'Hiển thị tốc độ', toggle_ON_EN, toggle_OFF_EN,
                     toggle_ON_VI, toggle_OFF_VI)
         draw_toggle(400, 250, toggle_dark_mode, 'Dark Mode', 'Chế độ tối', toggle_ON_EN, toggle_OFF_EN, toggle_ON_VI,
                     toggle_OFF_VI)
+        # endregion
 
+        # region ===== Display Text & UI Elements =====
         dark_slider.draw(screen, font, 'Brightness' if LANGUAGE == 'ENGLISH' else 'Độ sáng',
                          toggle_dark_mode)
         dark_input.draw(screen)
@@ -1406,35 +1481,29 @@ while True:
         sfx_slider.draw(screen, font, 'SFX', toggle_dark_mode)
         sfx_input.draw(screen)
         py.draw.rect(screen, (255, 255, 0), buttons[1])
-        bg_text = font.render('Background' if LANGUAGE == 'ENGLISH' else 'Nền',
-                              True, (255, 255, 255) if toggle_dark_mode else (0, 0, 0))
-        bg_lines = return_text_wrapped(
-            'Back ground' if LANGUAGE == 'ENGLISH' else 'Nền',
-            font,
-            (0, 0, 0),
-            100
-        )
-        player_config_lines = return_text_wrapped(
+        py.draw.rect(screen, (255, 255, 0), buttons[3])
+        blit_text_wrapped(
+            screen,
             'Player' if LANGUAGE == 'ENGLISH' else 'Người chơi',
             font,
-            (0, 0, 0),
+            (255, 255, 255) if toggle_dark_mode else (0, 0, 0),
+            buttons[1].centerx,
+            buttons[1].centery,
             100
         )
-        bg_y = buttons[1].centery - (len(bg_lines) * font.get_linesize()) // 2
-
-        for line in bg_lines:
-            rect = line.get_rect(centerx=buttons[1].centerx, y=bg_y)
-            screen.blit(line, rect)
-            bg_y += font.get_linesize()
-
-        py.draw.rect(screen, (255, 255, 0), buttons[3])
-        plr_config_y = buttons[3].centery - (len(player_config_lines) * font.get_linesize() // 2)
-
-        for line in player_config_lines:
-            rect = line.get_rect(centerx=buttons[3].centerx, y=plr_config_y)
-            screen.blit(line, rect)
-            plr_config_y += font.get_linesize()
+        blit_text_wrapped(
+            screen,
+            'Back ground' if LANGUAGE == 'ENGLISH' else 'Nền',
+            font,
+            (255, 255, 255) if toggle_dark_mode else (0, 0, 0),
+            buttons[3].centerx,
+            buttons[3].centery, 100
+        )
         display()
+        # endregion
+    # endregion
+
+    # region ===== Displaying Visual Settings UI =====
     elif state == 'VSETTINGS':
         screen.fill(BG_COLOR)
         red_slider.draw(screen, font, 'Red' if LANGUAGE == 'ENGLISH' else 'Đỏ', toggle_dark_mode)
@@ -1466,8 +1535,13 @@ while True:
         screen.blit(save_text, save_text.get_rect(center=buttons[2].center))
         screen.blit(TRASH_BIN, (600, 400))
         display()
+    # endregion
+
+    # region ===== Displaying Player Settings UI =====
     elif state == 'PSETTINGS':
         screen.fill(BG_COLOR)
+        # region ===== Display Players' Skin & Buttons & Borderlines =====
+        # players
         if p1_skin == 'Yellow':
             screen.blit(YELLOW_SHIP, (100, 150))
         else:
@@ -1476,10 +1550,24 @@ while True:
             screen.blit(GREEN_SHIP, (100, 500))
         else:
             screen.blit(YELLOW_SHIP, (100, 500))
+        # buttons
         screen.blit(triangle, triangle.get_rect(center=triangle_BOX.center))
         screen.blit(triangle2, triangle2.get_rect(center=triangle_BOX2.center))
         screen.blit(triangle3, triangle3.get_rect(center=triangle_BOX3.center))
         screen.blit(triangle4, triangle4.get_rect(center=triangle_BOX4.center))
+
+        # border lines
+        py.draw.rect(screen, (0, 0, 0), buttons[4])
+        py.draw.rect(screen, (0, 0, 0), buttons[5])
+        # endregion
+
+        # region ===== Setup Text =====
+        perk1_text = font.render(perks[current_p1_perk_idx], True, (255, 255, 255) if toggle_dark_mode else (0, 0, 0))
+        perk2_text = font.render(perks[current_p2_perk_idx], True, (255, 255, 255) if toggle_dark_mode else (0, 0, 0))
+        desc1_text = font.render(perk_desc[current_p1_perk_idx], True,
+                                 (255, 255, 255) if toggle_dark_mode else (0, 0, 0))
+        desc2_text = font.render(perk_desc[current_p2_perk_idx], True,
+                                 (255, 255, 255) if toggle_dark_mode else (0, 0, 0))
         p1_text = font.render('Player 1 (Hold LeftShift to Burst)' if LANGUAGE == 'ENGLISH' else
                               'Người chơi 1 (Giữ Shift trái để chạy nhanh)', True,
                               (255, 255, 255) if toggle_dark_mode else (0, 0, 0))
@@ -1489,12 +1577,9 @@ while True:
             (255, 255, 255) if toggle_dark_mode else (0, 0, 0))
         perk_text = font.render('Perks' if LANGUAGE == 'ENGLISH' else 'Kĩ năng', True,
                                 (255, 255, 255) if toggle_dark_mode else (0, 0, 0))
-        py.draw.rect(screen, (0, 0, 0), buttons[4])
-        py.draw.rect(screen, (0, 0, 0), buttons[5])
-        perk1_text = font.render(perks[current_p1_perk_idx], True, (255, 255, 255) if toggle_dark_mode else (0, 0, 0))
-        perk2_text = font.render(perks[current_p2_perk_idx], True, (255, 255, 255) if toggle_dark_mode else (0, 0, 0))
-        desc1_text = font.render(perk_desc[current_p1_perk_idx], True, (255, 255, 255) if toggle_dark_mode else (0, 0, 0))
-        desc2_text = font.render(perk_desc[current_p2_perk_idx], True, (255, 255, 255) if toggle_dark_mode else (0, 0, 0))
+        # endregion
+
+        # region ===== Display Text & Clicking VFX (Surfaces) =====
         blit_text_wrapped(
             screen,
             perk_desc[current_p1_perk_idx],
@@ -1548,10 +1633,18 @@ while True:
         screen.blit(triangle_SURFACE3, triangle3.get_rect(center=triangle_BOX3.center))
         screen.blit(triangle_SURFACE4, triangle4.get_rect(center=triangle_BOX4.center))
         display()
+        # endregion
+    # endregion
 
-    # ===== IN GAME =====
+    # region ===== Core Game Mechanic =====
     elif state == 'BASE':
         screen.fill(BG_COLOR)
+        dt = clock.tick(120) / 1000
+        dt_scale = dt * 80
+        KEYS = py.key.get_pressed()
+
+        # region ===== Handling Background & Wave =====
+        # Move
         if not timestopping2:
             x_wave1 -= speed_for_player1 * dt_scale
             player1_ball_x += speed_for_player1 * dt_scale / 100
@@ -1561,19 +1654,33 @@ while True:
             x_wave2 -= speed_for_player2 * dt_scale
             distance_to_finish_line2 += speed_for_player2 * dt_scale
         if not timestopping and not timestopping2:
-            x_bg -= 1
-        if distance_to_finish_line1 >= finish_line_base_x:
+            x_bg -= 1 * dt_scale
+
+        # Reset
+        if x_bg < -1022:
+            x_bg = 0
+        if x_wave1 < -1022:
+            x_wave1 = 0
+        if x_wave2 < -1022:
+            x_wave2 = 0
+        # endregion
+
+        # region ===== Handling End-game Mechanic =====
+        if distance_to_finish_line1 >= finish_line_x:
             winner_text = WINNER_FONT.render('PLAYER 1 WINS!', True, (255, 255, 0))
             state = 'END'
             if toggle_fireworks:
                 firework_spawner(int(firework_slider.value))
             WIN_sfx.play(0)
-        elif distance_to_finish_line2 >= finish_line_base_x:
+        elif distance_to_finish_line2 >= finish_line_x:
             winner_text = WINNER_FONT.render('PLAYER 2 WINS!', True, (0, 100, 0))
             state = 'END'
             if toggle_fireworks:
                 firework_spawner(int(firework_slider.value))
             WIN_sfx.play(0)
+        # endregion
+
+        # region ===== Relocating Energy Balls =====
         if energy_ball1_is_visible:
             if not timestopping2:
                 x_energy_ball1 -= speed_for_player1 * dt_scale
@@ -1586,6 +1693,9 @@ while True:
                 if x_energy_ball2 < -480:
                     x_energy_ball2 = 900
                     y_energy_ball2 = random.randint(430, 620)
+        # endregion
+
+        # region ===== Energy Balls Handling =====
         if not energy_ball1_is_visible and py.time.get_ticks() - energy_ball_timer1 >= energy_ball_respawn_time:
             while not timestopping2:
                 x_energy_ball1 = 900
@@ -1614,167 +1724,108 @@ while True:
                 if not collision:
                     energy_ball2_is_visible = True
                     break
+        # endregion
 
-        if x_bg < -1022:
-            x_bg = 0
-        if x_wave1 < -1022:
-            x_wave1 = 0
-        if x_wave2 < -1022:
-            x_wave2 = 0
-        KEYS = py.key.get_pressed()
-
-        # ===== PLAYER 1 FULL CONTROL =====
+        # region ===== Player 1 Full Control =====
         if not timestopping2:
             if KEYS[py.K_w] and y_player1 > 110:
-                y_player1 -= 5
+                y_player1 -= 5 * dt_scale
             if KEYS[py.K_s] and y_player1 < 350:
-                y_player1 += 5
+                y_player1 += 5 * dt_scale
             # Player 1 Burst Ability (LSHIFT key)
+            # region ===== While Bursting =====
             if KEYS[py.K_LSHIFT] and not flashstepping:
                 if energy_player1 > 0:
                     if backend_perks[current_p1_perk_idx] == 'More Energy':
-                        energy_player1 -= 0.075
+                        energy_player1 -= 0.075 * dt_scale
                     else:
-                        energy_player1 -= 0.2
-                    if speed_for_player1 >= normal_speed_for_player1:  # If speed is not below
-                        if backend_perks[current_p1_perk_idx] == 'Faster Burst':  # Extra Speed Boost
-                            speed_for_player1 = min(21, speed_for_player1 + 0.8)
+                        energy_player1 -= 0.2 * dt_scale
+                    if speed_for_player1 >= normal_speed_for_player1:
+                        if backend_perks[current_p1_perk_idx] == 'Faster Burst':
+                            speed_for_player1 = min(21, speed_for_player1 + 0.8 * dt_scale)
                         else:
-                            speed_for_player1 = min(13, speed_for_player1 + 0.1)
+                            speed_for_player1 = min(13, speed_for_player1 + 0.1 * dt_scale)
                     else:
-                        if backend_perks[current_p1_perk_idx] == 'Faster Burst':  # Extra Speed Boost
-                            speed_for_player1 = min(normal_speed_for_player1, speed_for_player1 + 0.8)  # x8 Recovery
+                        if backend_perks[current_p1_perk_idx] == 'Faster Burst':
+                            speed_for_player1 = min(normal_speed_for_player1, speed_for_player1 + 0.8 * dt_scale)
                         else:
-                            speed_for_player1 = min(normal_speed_for_player1, speed_for_player1 + 0.1)
-                else:  # Out of Energy
-                    if speed_for_player1 > normal_speed_for_player1 and not ('Speeds' in backend_perks[current_p1_perk_idx]):
-                        speed_for_player1 = max(normal_speed_for_player1, speed_for_player1 - 0.1)
+                            speed_for_player1 = min(normal_speed_for_player1, speed_for_player1 + 0.1 * dt_scale)
+                else:
+                    if speed_for_player1 > normal_speed_for_player1 and not (
+                            'Speeds' in backend_perks[current_p1_perk_idx]):
+                        speed_for_player1 = max(normal_speed_for_player1, speed_for_player1 - 0.1 * dt_scale)
                     elif speed_for_player1 < normal_speed_for_player1:
                         if 'Passive' in backend_perks[current_p1_perk_idx]:
-                            speed_for_player1 = min(normal_speed_for_player1, speed_for_player1 + 0.05)
+                            speed_for_player1 = min(normal_speed_for_player1, speed_for_player1 + 0.05 * dt_scale)
                         else:
-                            speed_for_player1 = min(normal_speed_for_player1, speed_for_player1 + 0.025)
-            else:  # Not Bursting
-                if speed_for_player1 > normal_speed_for_player1 and not ('Speeds' in backend_perks[current_p1_perk_idx]):
-                    speed_for_player1 = max(normal_speed_for_player1, speed_for_player1 - 0.1)
+                            speed_for_player1 = min(normal_speed_for_player1, speed_for_player1 + 0.025 * dt_scale)
+            # endregion
+
+            # region ===== While Not Bursting =====
+            else:
+                if speed_for_player1 > normal_speed_for_player1 and not (
+                        'Speeds' in backend_perks[current_p1_perk_idx]):
+                    speed_for_player1 = max(normal_speed_for_player1, speed_for_player1 - 0.1 * dt_scale)
                 elif speed_for_player1 < normal_speed_for_player1:
                     if 'Passive' in backend_perks[current_p1_perk_idx]:
-                        speed_for_player1 = min(normal_speed_for_player1, speed_for_player1 + 0.05)
+                        speed_for_player1 = min(normal_speed_for_player1, speed_for_player1 + 0.05 * dt_scale)
                     elif 'Test' in backend_perks[current_p1_perk_idx]:
-                        speed_for_player1 = min(normal_speed_for_player1, speed_for_player1 + 10)
+                        speed_for_player1 = min(normal_speed_for_player1, speed_for_player1 + 10 * dt_scale)
                     else:
-                        speed_for_player1 = min(normal_speed_for_player1, speed_for_player1 + 0.025)
-            # SPECIAL ABILITY (FLASH STEP / TIMESTOP)
-            if KEYS[py.K_c]:
-                if 'Flash' in backend_perks[current_p1_perk_idx]:
-                    flashstepping, flashstep_start, last_flashstep, flashstep_pack = pk.try_activate_ability(
-                        flashstepping, flashstep_start, last_flashstep, flashstep_pack, py.time.get_ticks()
-                    )
-                elif 'Time' in backend_perks[current_p1_perk_idx]:
-                    timestopping, ts_start, last_ts, timestop_pack = pk.try_activate_ability(
-                        timestopping, ts_start, last_ts, timestop_pack, py.time.get_ticks()
-                    )
+                        speed_for_player1 = min(normal_speed_for_player1, speed_for_player1 + 0.025 * dt_scale)
+            # endregion
+            # ===== SPEEDSTER PERK (Player 1) =====
+            if 'Speeds' in backend_perks[current_p1_perk_idx]:
+                if normal_speed_for_player1 <= speed_for_player1 < 20:
+                    speed_for_player1 = min(20, speed_for_player1 + 0.05 * dt_scale)
+        # endregion
 
-            if timestopping:
-                current_time3 = py.time.get_ticks()
-                TS_SURFACE.fill((0, 0, 0))
-                TS_SURFACE.set_alpha(100)
-                speed_for_player1 = min(20, speed_for_player1 + 1)
-                speed_for_player2 = normal_speed_for_player2
-                if current_time3 - ts_start >= timestop_pack[1]:
-                    timestopping = False
-            else:
-                TS_SURFACE.set_alpha(0)
-            if flashstepping:
-                current_time = py.time.get_ticks()
-                speed_for_player1 = min(25, speed_for_player1 + 1)
-                if current_time - flashstep_start >= flashstep_pack[1]:
-                    flashstepping = False  # hết duration
-        # ===== PLAYER 2 FULL CONTROL =====
+        # region ===== PLAYER 2 FULL CONTROL =====
         if not timestopping:
             if KEYS[py.K_UP] and y_player2 > 380:
-                y_player2 -= 5
+                y_player2 -= 5 * dt_scale
             if KEYS[py.K_DOWN] and y_player2 < 610:
-                y_player2 += 5
+                y_player2 += 5 * dt_scale
+            # region ===== While Bursting =====
             if KEYS[py.K_RCTRL] and not flashstepping2:
-                if energy_player2 > 0:  # While Bursting
+                if energy_player2 > 0:
                     if 'Energy' in backend_perks[current_p2_perk_idx]:
-                        energy_player2 -= 0.075
+                        energy_player2 -= 0.075 * dt_scale
                     else:
-                        energy_player2 -= 0.2
+                        energy_player2 -= 0.2 * dt_scale
                     if 'Burst' in backend_perks[current_p2_perk_idx]:
-                        speed_for_player2 = min(21, speed_for_player2 + 0.8)  # Max speed capped at 21, 8x faster windup
+                        speed_for_player2 = min(21, speed_for_player2 + 0.8 * dt_scale)
                     else:
-                        speed_for_player2 = min(13, speed_for_player2 + 0.1)  # Max speed capped at 13, normal windup
-                else:  # If out of energy, but still holding ability keybind
-                    if speed_for_player2 > normal_speed_for_player2 and not ('Speeds' in backend_perks[current_p2_perk_idx]):
-                        speed_for_player2 = max(normal_speed_for_player2, speed_for_player2 - 0.1)
+                        speed_for_player2 = min(13, speed_for_player2 + 0.1 * dt_scale)
+                else:
+                    if speed_for_player2 > normal_speed_for_player2 and not (
+                            'Speeds' in backend_perks[current_p2_perk_idx]):
+                        speed_for_player2 = max(normal_speed_for_player2, speed_for_player2 - 0.1 * dt_scale)
                     elif speed_for_player2 < normal_speed_for_player2:
                         if 'Passive' in backend_perks[current_p2_perk_idx]:
-                            speed_for_player2 = min(normal_speed_for_player2, speed_for_player2 + 0.05)
+                            speed_for_player2 = min(normal_speed_for_player2, speed_for_player2 + 0.05 * dt_scale)
                         else:
-                            speed_for_player2 = min(normal_speed_for_player2, speed_for_player2 + 0.025)
-            else:  # If not holding ability key (Handle the same as out of energy)
-                if speed_for_player2 > normal_speed_for_player2 and not ('Speeds' in backend_perks[current_p2_perk_idx]):
-                    speed_for_player2 = max(normal_speed_for_player2, speed_for_player2 - 0.1)
+                            speed_for_player2 = min(normal_speed_for_player2, speed_for_player2 + 0.025 * dt_scale)
+            # endregion
+
+            # region ===== While Not Bursting =====
+            else:
+                if speed_for_player2 > normal_speed_for_player2 and not (
+                        'Speeds' in backend_perks[current_p2_perk_idx]):
+                    speed_for_player2 = max(normal_speed_for_player2, speed_for_player2 - 0.1 * dt_scale)
                 elif speed_for_player2 < normal_speed_for_player2:
                     if 'Passive' in backend_perks[current_p2_perk_idx]:
-                        speed_for_player2 = min(normal_speed_for_player2, speed_for_player2 + 0.05)
+                        speed_for_player2 = min(normal_speed_for_player2, speed_for_player2 + 0.05 * dt_scale)
                     else:
-                        speed_for_player2 = min(normal_speed_for_player2, speed_for_player2 + 0.025)
+                        speed_for_player2 = min(normal_speed_for_player2, speed_for_player2 + 0.025 * dt_scale)
+            # endregion
+            # ===== SPEEDSTER PERK (Player 2) =====
+            if 'Speeds' in backend_perks[current_p2_perk_idx]:
+                if normal_speed_for_player2 <= speed_for_player2 < 20:
+                    speed_for_player2 = min(20, speed_for_player2 + 0.05 * dt_scale)
+        # endregion
 
-            # ===== FLASH STEP + TIME-STOP =====
-            if KEYS[py.K_BACKSLASH]:
-                if 'Flash' in backend_perks[current_p2_perk_idx]:
-                    flashstepping2, flashstep_start2, last_flashstep2, flashstep_pack2 = pk.try_activate_ability(
-                        flashstepping2, flashstep_start2, last_flashstep2, flashstep_pack2, py.time.get_ticks()
-                    )
-                elif 'Time' in backend_perks[current_p2_perk_idx]:
-                    timestopping2, ts_start2, last_ts2, timestop_pack2 = pk.try_activate_ability(
-                        timestopping2, ts_start2, last_ts2, timestop_pack2, py.time.get_ticks()
-                    )
-            if flashstepping2:
-                current_time2 = py.time.get_ticks()
-                speed_for_player2 = min(25, speed_for_player2 + 1)
-                if current_time2 - flashstep_start2 >= flashstep_pack2[1]:
-                    flashstepping2 = False  # hết duration
-            if timestopping2:
-                current_time4 = py.time.get_ticks()
-                TS_SURFACE.fill((0, 0, 0))
-                TS_SURFACE.set_alpha(100)
-                speed_for_player2 = min(20, speed_for_player2 + 1)
-                speed_for_player1 = normal_speed_for_player1
-                if current_time4 - ts_start2 >= timestop_pack2[1]:
-                    timestopping2 = False
-            else:
-                TS_SURFACE.set_alpha(0)
-        if 'Dark' in backend_perks[current_p1_perk_idx]:
-            current_time5 = py.time.get_ticks()
-            if current_time5 - last_create_rocks >= 10000 and ability_counts < 3:
-                create_rocks_start = current_time5
-                last_create_rocks = current_time5
-                spawn_rock(2, 2)
-                ability_counts += 1
-                print('Created rocks using dark magic!')
-
-        if 'Dark' in backend_perks[current_p2_perk_idx]:
-            current_time6 = py.time.get_ticks()
-            if current_time6 - last_create_rocks2 >= 10000 and ability_counts2 < 3:
-                create_rocks_start2 = current_time6
-                last_create_rocks2 = current_time6
-                spawn_rock(2, 1)
-                ability_counts2 += 1
-                print('Created rocks using dark magic!')
-
-        # ===== SPEEDSTER PERK (Player 1) =====
-        if 'Speeds' in backend_perks[current_p1_perk_idx]:
-            if normal_speed_for_player1 <= speed_for_player1 * dt_scale < 20:
-                speed_for_player1 = min(20, speed_for_player1 + 0.05)  # tăng từ từ
-
-        # ===== SPEEDSTER PERK (Player 2) =====
-        if 'Speeds' in backend_perks[current_p2_perk_idx]:
-            if normal_speed_for_player2 <= speed_for_player2 * dt_scale < 20:
-                speed_for_player2 = min(20, speed_for_player2 + 0.05)
+        # region ===== Displaying Game =====
         screen.blit(BACKGROUND, (x_bg, 0))
         screen.blit(BARRIER, (0, 0))
         screen.blit(PROGRESS_BAR, (250, 0))
@@ -1797,12 +1848,15 @@ while True:
             py.draw.rect(screen, (0, 100, 0) if p2_skin == 'Green' else (255, 255, 0),
                          p2_highlight.move(0, y_player2), 2)
         check_collision()
-        finish_screen_x_1 = finish_line_base_x - distance_to_finish_line1
-        finish_screen_x_2 = finish_line_base_x - distance_to_finish_line2
+        finish_screen_x_1 = finish_line_x - distance_to_finish_line1
+        finish_screen_x_2 = finish_line_x - distance_to_finish_line2
         if 0 <= finish_screen_x_1 <= 900:
             screen.blit(FINISH_LINE, (finish_screen_x_1, 135))
         if 0 <= finish_screen_x_2 <= 900:
             screen.blit(FINISH_LINE, (finish_screen_x_2, 400))
+        # endregion
+
+        # region ===== Handling Rocks =====
         for ROCK in rocks:
             if 130 <= ROCK[1] <= 350:
                 if not timestopping2:
@@ -1855,6 +1909,9 @@ while True:
                             ROCK[1] = new_y
                             break
             screen.blit(ROCK_IMG, (ROCK[0], ROCK[1]))
+        # endregion
+
+        # region ===== Display Player Speed =====
         if toggle_display_speed:
             DISP_SPD1 = round(speed_for_player1, 2)
             if DISP_SPD1 == int(DISP_SPD1):
@@ -1872,6 +1929,9 @@ while True:
                                       True, (0, 0, 0))
             screen.blit(spd_render1, (0, y_player1 + 50))
             screen.blit(spd_render2, (0, y_player2 + 50))
+        # endregion
+
+        # region ===== Display Charge Usages =====
         # Player 1
         if 'Flash' in backend_perks[current_p1_perk_idx]:
             perk_text1 = font.render(
@@ -1901,13 +1961,19 @@ while True:
                 True, (0, 0, 0)
             )
             screen.blit(perk_text2, (0, y_player2 - 50))
+        # endregion
 
+        # region ===== Display Miscellaneous Stuff =====
         draw_energy_bars()
         screen.blit(TS_SURFACE, (0, 0))
         display()
+        # endregion
+    # endregion
 
-    # ===== END GAME =====
+    # region ===== Displaying End Game UI =====
     elif state == 'END':
+        dt = clock.tick(120) / 1000
+        dt_scale = dt * 80
         screen.blit(BACKGROUND, (x_bg, 0))
         screen.blit(BARRIER, (0, 0))
         screen.blit(YELLOW_SHIP_G, (0, y_player1))
@@ -1919,10 +1985,6 @@ while True:
         screen.blit(WAVE, (x_wave2, 430))
         for ROCK in rocks:
             screen.blit(ROCK_IMG, (ROCK[0], ROCK[1]))
-        dark_surface = py.Surface((900, 680))
-        dark_surface.fill((0, 0, 0))
-        dark_surface.set_alpha(int(dark_slider.value))
-        screen.blit(dark_surface, (0, 0))
         text_rect = winner_text.get_rect()
         text_rect.centerx = screen.get_width() // 2
         text_rect.y = 200
@@ -1937,109 +1999,10 @@ while True:
             fps_text = font.render(f"FPS: {int(clock.get_fps())}", True, (255, 255, 255))
             screen.blit(fps_text, (0, 350))
         if toggle_fireworks:
-            update_fireworks(dt_scale)
+            update_fireworks(dt)
         GAME_music.stop()
+        display()
+    # endregion
     py.display.flip()
     clock.tick(9999)
-"""
-perks = []
-perk_desc = []
-
-charges = duration = cooldown = 0
-
-
-def get_desc(language):
-    global perk_desc
-    if language == 'ENGLISH':
-        perk_desc = [
-            'Increase Energy from energy bubble <x2>',  # ✅
-            'Reduce slowness effect after taking a rock <-90%>',  # ✅
-            'Increase bursting speed <+8>',  # ✅
-            'Increase default speed <+3>',  # ✅
-            'Move super fast for 3,5s, immune to rocks while flash stepping. <Press C or Backslash>',  # ✅
-            'Gain speed after taking a rock <+3>',  #
-            'Gain energy after taking a rock, slightly reduce slowness effect',  # ✅
-            'Create 2 rocks every 10 seconds (Max 3 times)',  # ✅
-            'Freeze enemy for 3 seconds, increase speed and immune to rocks while using. <Press "C" or "/">',  # ✅
-            'Faster over time, but hitting a rock will reduce massive amount of speed.',  # ✅
-            'Fastest, testing purposes'
-        ]
-    else:
-        perk_desc = [
-            'Tăng năng lượng từ bóng năng lượng <x2>',  # [0]
-            'Giảm hiệu ứng đi chậm sau khi đâm vào đá <-90%>',  # [1]
-            'Tăng thêm tốc độ khi đang burst <+8>',  # [2]
-            'Tăng tốc độ mặc định',  # [3]
-            'Tăng tốc cực nhanh trong 3,5s, trong thời gian này sẽ miễn nhiễm với đá. <Bấm "C" hoặc "/"',  # [4]
-            'Tăng tốc độ sau khi đâm vào đá <+3>',  # [5]
-            'Tăng năng lượng sau khi đâm vào đá, giảm nhẹ hiệu ứng đi chậm',  # [6]
-            'Tạo 2 đá mỗi 10 giây (Tối đa 3 lượt)',  # [7]
-            'Đóng băng đối thủ trong 3 giây, di chuyển nhanh hơn và miễn nhiễm với đá khi đang dùng <Bấm C hoặc />',  # [8]
-            'Nhanh hơn qua thời gian, nhưng đâm vào đá sẽ giảm rất nhiều tốc độ.',  # [9]
-            'Nhanh nhất, sử dụng cho mục đích thử nghiệm'
-        ]
-    return perk_desc
-
-
-def get_manual_use_ability(ability):
-    global charges, duration, cooldown
-    if ability == 'Absorption':
-        charges = 20
-    if ability == 'Flash Step':
-        charges = 5
-        duration = 3500  # ms
-        cooldown = 5000
-    if ability == 'Timestop':
-        charges = 3
-        duration = 3000
-        cooldown = 7000
-    return [charges, duration, cooldown]
-
-
-def get_perks(language):
-    global perks
-    if language == 'ENGLISH':
-        perks = [
-            'More Energy',  # ✅
-            'Reduce Slowness',  # ✅
-            'Faster Burst',  # ✅
-            'Passive Speed',  # ✅
-            'Flash Step [x5]',  # ✅
-            'Absorption [x20]',  # ✅
-            'Rage',  # ✅
-            'Dark Magic',  # ✅
-            'Timestop [x3]',  # ✅
-            'Speedster',  # ✅
-            'Test'
-        ]
-    else:
-        perks = [
-            'Thêm năng lượng',
-            'Giảm đi chậm',
-            'Tăng tốc nhanh hơn',
-            'Tăng tốc độ',
-            'Tốc biến [x5]',
-            'Hấp thụ [x20]',
-            'Tức giận',
-            'Ma thuật đen',
-            'Dừng thời gian [x3]',
-            'Vua tốc độ',
-            'Test'
-        ]
-    return perks
-
-
-def try_activate_ability(is_active, start_time, last_time, pack, current_time):
-    if current_time - last_time >= pack[2]:  # đủ cooldown
-        if not is_active and pack[0] > 0:  # chưa chạy và còn charges
-            is_active = True
-            start_time = current_time
-            last_time = current_time
-            pack[0] = max(0, pack[0] - 1)  # trừ charges
-    return is_active, start_time, last_time, pack
-
-
-def get_perks_length():
-    temp = get_perks('ENGLISH')
-    return len(temp) - 1
-"""
+# endregion
