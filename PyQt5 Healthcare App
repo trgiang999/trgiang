@@ -1,0 +1,859 @@
+import sys
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, \
+    QScrollArea, QFrame, QTabWidget, QComboBox
+from PyQt5.QtGui import QPixmap, QIcon, QFont
+from PyQt5.QtCore import Qt
+
+
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Ứng dụng Sức Khỏe")
+        self.setWindowFlags(Qt.Window | Qt.WindowTitleHint | Qt.WindowCloseButtonHint)
+
+        self.setGeometry(0, 0, 1370, 705)
+        self.setFixedSize(1370, 705)
+
+        # State management
+        self.current_screen = "home"  # State variable to track current screen
+
+        # Central widget với layout dọc chính
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+        main_layout = QVBoxLayout()
+        main_layout.setContentsMargins(10, 10, 10, 10)
+        main_layout.setSpacing(10)
+        central_widget.setLayout(main_layout)
+
+        # 1. Header / App Bar
+        header = QWidget()
+        header.setFixedHeight(60)
+        header.setStyleSheet("""
+                    background-color: #2c3e50;
+                    border-top-left-radius: 10px;
+                    border-top-right-radius: 10px;
+                                    """)
+        header_layout = QHBoxLayout()
+        header.setLayout(header_layout)
+
+        # Logo + App Name (trái)
+        logo_label = QLabel()
+        try:
+            logo_pixmap = QPixmap("logo.png").scaled(40, 40, Qt.KeepAspectRatio)
+            logo_label.setPixmap(logo_pixmap)
+        except:
+            logo_label.setText("Logo")
+        header_layout.addWidget(logo_label)
+
+        app_name = QLabel("My Health App")
+        app_name.setStyleSheet("color: white; font-size: 18px; font-weight: bold; margin-left: 10px;")
+        header_layout.addWidget(app_name)
+
+        header_layout.addStretch()
+
+        # Bell icon (thông báo)
+        bell_button = QPushButton()
+        try:
+            bell_button.setIcon(QIcon("bell.png"))
+            bell_button.setIconSize(Qt.QSize(24, 24))
+        except:
+            bell_button.setText("🔔")
+        bell_button.setStyleSheet("background-color: transparent; border: none; color: white; font-size: 24px;")
+        bell_button.clicked.connect(self.show_notification)
+        header_layout.addWidget(bell_button)
+
+        # Avatar (hình tròn mặc định)
+        avatar = QWidget()
+        avatar.setFixedSize(40, 40)
+        avatar.setStyleSheet("background-color: #bdc3c7; border-radius: 20px;")
+        header_layout.addWidget(avatar)
+
+        main_layout.addWidget(header)
+
+        # Create main content area that will change based on state
+        self.main_content_area = QWidget()
+        self.main_content_layout = QVBoxLayout()
+        self.main_content_area.setLayout(self.main_content_layout)
+        main_layout.addWidget(self.main_content_area)
+
+        # Load initial home screen
+        self.load_home_screen()
+
+        # 5. Bottom Navigation - UPDATED FOR SEPARATED BUTTONS
+        bottom_nav = QWidget()
+        bottom_nav.setFixedHeight(60)
+        bottom_nav.setStyleSheet("""
+                    background-color: #2c3e50;
+                    border-bottom-left-radius: 10px;
+                    border-bottom-right-radius: 10px;                                 
+                    """)
+        bottom_nav_layout = QHBoxLayout()
+        bottom_nav_layout.setSpacing(5)  # Add spacing between buttons
+        bottom_nav_layout.setContentsMargins(10, 5, 10, 5)  # Add margins
+        bottom_nav.setLayout(bottom_nav_layout)
+
+        nav_items = [
+            ("🏠 Home", self.home_nav),
+            ("📊 Track", self.track_nav),
+            ("📅 Calendar", self.calendar_nav),
+            ("⚙️ Settings", self.settings_nav)
+        ]
+
+        for item_text, func in nav_items:
+            nav_btn = QPushButton(item_text)
+            nav_btn.setFixedHeight(50)
+            # Updated styling for separated buttons
+            nav_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #34495e; 
+                    border: 1px solid #5a6c7d;
+                    border-radius: 8px;
+                    color: white; 
+                    font-size: 12px;
+                    padding: 5px;
+                }
+                QPushButton:hover {
+                    background-color: #4a5f7a;
+                    border: 1px solid #7d8fa3;
+                }
+                QPushButton:pressed {
+                    background-color: #2c3e50;
+                    border: 1px solid #34495e;
+                }
+            """)
+            nav_btn.clicked.connect(func)
+            bottom_nav_layout.addWidget(nav_btn)
+
+        main_layout.addWidget(bottom_nav)
+
+    # Các hàm xử lý sự kiện (placeholder)
+    def show_notification(self):
+        print("Thông báo được mở!")
+
+    def moveEvent(self, event):
+        """Override moveEvent to prevent window movement"""
+        # Always move back to fixed position (0, 0)
+        if self.pos().x() != 0 or self.pos().y() != 0:
+            self.move(-5, 0)
+
+        # Call parent's moveEvent (QUAN TRỌNG!)
+        super().moveEvent(event)
+    def view_all_reminders(self):
+        print("Xem tất cả nhắc nhở!")
+
+    def medicine_action(self):
+        print("Thuốc được nhấn!")
+
+    def results_action(self):
+        print("Kết quả được nhấn!")
+
+    def add_data(self):
+        print("Mở cửa sổ nhập dữ liệu!")
+
+    def view_details(self):
+        print("Xem chi tiết!")
+
+    def connect_device(self):
+        print("Kết nối thiết bị!")
+
+    # Updated navigation functions with state management
+    def home_nav(self):
+        self.load_screen("home")
+
+    def track_nav(self):
+        self.load_screen("track")
+
+    def calendar_nav(self):
+        self.load_screen("calendar")
+
+    def settings_nav(self):
+        self.load_screen("settings")
+
+    def load_screen(self, screen_name):
+        """Load different screens based on state"""
+        self.move(0, 0)
+        if self.current_screen == screen_name:
+            return  # Don't reload if already on the same screen
+
+        self.current_screen = screen_name
+
+        # Clear current content
+        self.clear_main_content()
+        # Load the appropriate screen
+        if screen_name == "home":
+            self.load_home_screen()
+        elif screen_name == "track":
+            self.load_track_screen()
+        elif screen_name == "calendar":
+            self.load_calendar_screen()
+        elif screen_name == "settings":
+            self.load_settings_screen()
+
+    def clear_main_content(self):
+        """Clear all widgets from main content area"""
+        layout = self.main_content_layout
+        while layout.count():
+            child = layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
+
+    def load_home_screen(self):
+        """Load the home screen with all default UI elements"""
+        # Quick Stats / Summary cards
+        self.showMaximized()
+        quick_stats_scroll = QScrollArea()
+        quick_stats_scroll.setWidgetResizable(True)
+        quick_stats_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        quick_stats_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        quick_stats_scroll.setFixedHeight(120)
+        quick_stats_widget = QWidget()
+        quick_stats_layout = QHBoxLayout()
+        quick_stats_layout.setSpacing(10)
+        quick_stats_widget.setLayout(quick_stats_layout)
+
+        # Card 1: Lịch hẹn
+        card1 = QFrame()
+        card1.setStyleSheet("background-color: #ecf0f1; border-radius: 10px; padding: 10px;")
+        card1.setFixedSize(200, 100)
+        card1_layout = QVBoxLayout()
+        card1_label = QLabel("Lịch hẹn gần nhất\nKhám tim mạch\n20/09/2025, 14:00")
+        card1_label.setAlignment(Qt.AlignCenter)
+        card1_layout.addWidget(card1_label)
+        card1.setLayout(card1_layout)
+        quick_stats_layout.addWidget(card1)
+
+        # Card 2: Huyết áp
+        card2 = QFrame()
+        card2.setStyleSheet("background-color: #ecf0f1; border-radius: 10px; padding: 10px;")
+        card2.setFixedSize(200, 100)
+        card2_layout = QVBoxLayout()
+        card2_label = QLabel("Chỉ số gần nhất\nHuyết áp hôm nay:\n120/80 mmHg")
+        card2_label.setAlignment(Qt.AlignCenter)
+        card2_layout.addWidget(card2_label)
+        card2.setLayout(card2_layout)
+        quick_stats_layout.addWidget(card2)
+
+        # Card 3: Thuốc
+        card3 = QFrame()
+        card3.setStyleSheet("background-color: #ecf0f1; border-radius: 10px; padding: 10px;")
+        card3.setFixedSize(200, 100)
+        card3_layout = QVBoxLayout()
+        card3_label = QLabel("Thuốc cần uống\nMetformin\n20:00")
+        card3_label.setAlignment(Qt.AlignCenter)
+        card3_layout.addWidget(card3_label)
+        card3.setLayout(card3_layout)
+        quick_stats_layout.addWidget(card3)
+
+        quick_stats_scroll.setWidget(quick_stats_widget)
+        self.main_content_layout.addWidget(quick_stats_scroll)
+
+        # Nhắc nhở hôm nay
+        reminders = QWidget()
+        reminders_layout = QVBoxLayout()
+        reminders.setLayout(reminders_layout)
+
+        reminders_title = QLabel("Nhắc nhở hôm nay")
+        reminders_title.setFont(QFont("Arial", 16, QFont.Bold))
+        reminders_layout.addWidget(reminders_title)
+
+        reminder_list = [
+            "- 08:00 uống thuốc",
+            "- 14:00 tái khám",
+            "- 20:00 đo huyết áp"
+        ]
+        for item in reminder_list:
+            reminder_item = QLabel(item)
+            reminders_layout.addWidget(reminder_item)
+
+        view_all = QPushButton("[ Xem tất cả ]")
+        view_all.setStyleSheet("background-color: transparent; border: none; color: blue;")
+        view_all.clicked.connect(self.view_all_reminders)
+        reminders_layout.addWidget(view_all)
+
+        self.main_content_layout.addWidget(reminders)
+
+        # Quick Actions
+        quick_actions = QWidget()
+        quick_actions_layout = QHBoxLayout()
+        quick_actions.setLayout(quick_actions_layout)
+
+        actions = [
+            ("📊 Theo dõi", self.track_nav),
+            ("💊 Thuốc", self.medicine_action),
+            ("📅 Lịch", self.calendar_nav),
+            ("📂 Kết quả", self.results_action)
+        ]
+
+        for text, func in actions:
+            action_btn = QPushButton(text)
+            action_btn.setFixedSize(150, 50)
+            action_btn.setStyleSheet("background-color: #3498db; color: white; border-radius: 10px;")
+            action_btn.clicked.connect(func)
+            quick_actions_layout.addWidget(action_btn)
+
+        self.main_content_layout.addWidget(quick_actions)
+
+        # Add stretch to push bottom nav down
+        self.main_content_layout.addStretch()
+
+    def load_track_screen(self):
+        """Load the tracking screen with improved layout and functionality"""
+
+        # Top bar - IMPROVED: Better spacing and styling
+        top_bar = QWidget()
+        top_bar.setFixedHeight(60)
+        top_bar.setStyleSheet("background-color: #f8f9fa; border-radius: 10px; padding: 10px;")
+        top_bar_layout = QHBoxLayout()
+        top_bar_layout.setContentsMargins(15, 10, 15, 10)
+        top_bar.setLayout(top_bar_layout)
+
+        # Title: Better font and styling
+        title = QLabel("Theo dõi sức khỏe")
+        title.setFont(QFont("Arial", 18, QFont.Bold))
+        title.setStyleSheet("color: #2c3e50;")
+        top_bar_layout.addWidget(title)
+
+        top_bar_layout.addStretch()
+
+        # Dropdown: Better styling and options
+        filter_dropdown = QComboBox()
+        filter_dropdown.addItems(["Hôm nay", "Tuần này", "Tháng này", "3 tháng", "6 tháng", "Tùy chỉnh"])
+        filter_dropdown.setStyleSheet("""
+            QComboBox {
+                background-color: white;
+                border: 2px solid #bdc3c7;
+                border-radius: 8px;
+                padding: 5px 10px;
+                font-size: 12px;
+                min-width: 100px;
+            }
+            QComboBox:hover {
+                border: 2px solid #3498db;
+            }
+            QComboBox::drop-down {
+                border: none;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                border: none;
+            }
+        """)
+        top_bar_layout.addWidget(filter_dropdown)
+
+        # Add button: Better styling
+        add_button = QPushButton("+ Thêm")
+        add_button.setFixedSize(80, 35)
+        add_button.setStyleSheet("""
+            QPushButton {
+                background-color: #3498db;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font-weight: bold;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                background-color: #2980b9;
+            }
+            QPushButton:pressed {
+                background-color: #21618c;
+            }
+        """)
+        add_button.clicked.connect(self.add_data)
+        top_bar_layout.addWidget(add_button)
+
+        self.main_content_layout.addWidget(top_bar)
+
+        # IMPROVED: Health metrics cards with better data and layout
+        metrics_scroll = QScrollArea()
+        metrics_scroll.setWidgetResizable(True)
+        metrics_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        metrics_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        metrics_scroll.setMaximumHeight(280)
+        metrics_widget = QWidget()
+        metrics_layout = QVBoxLayout()
+        metrics_layout.setSpacing(8)
+        metrics_widget.setLayout(metrics_layout)
+
+        # Enhanced health data with trends
+        health_metrics = [
+            {
+                "icon": "🩺",
+                "title": "Huyết áp",
+                "value": "120/80",
+                "unit": "mmHg",
+                "subtext": "Hôm nay 08:00",
+                "trend": "📈",
+                "status": "normal"
+            },
+            {
+                "icon": "🍬",
+                "title": "Đường huyết",
+                "value": "5.6",
+                "unit": "mmol/L",
+                "subtext": "Hôm qua 20:00",
+                "trend": "📉",
+                "status": "good"
+            },
+            {
+                "icon": "⚖️",
+                "title": "Cân nặng",
+                "value": "65.2",
+                "unit": "kg",
+                "subtext": "15/09",
+                "trend": "📊",
+                "status": "tracking",
+                "has_chart": True
+            },
+            {
+                "icon": "❤️",
+                "title": "Nhịp tim",
+                "value": "72",
+                "unit": "BPM",
+                "subtext": "Hôm nay 09:30",
+                "trend": "📈",
+                "status": "normal"
+            },
+            {
+                "icon": "🌡️",
+                "title": "Nhiệt độ",
+                "value": "36.5",
+                "unit": "°C",
+                "subtext": "Hôm nay 07:00",
+                "trend": "➖",
+                "status": "normal"
+            }
+        ]
+
+        # Generate cards with improved styling
+        for data in health_metrics:
+            card = QFrame()
+
+            # Color coding based on status
+            if data["status"] == "normal":
+                bg_color = "#e8f5e8"
+                border_color = "#27ae60"
+            elif data["status"] == "good":
+                bg_color = "#e3f2fd"
+                border_color = "#3498db"
+            elif data["status"] == "tracking":
+                bg_color = "#fff3e0"
+                border_color = "#f39c12"
+            else:
+                bg_color = "#ecf0f1"
+                border_color = "#bdc3c7"
+
+            card.setStyleSheet(f"""
+                QFrame {{
+                    background-color: {bg_color};
+                    border: 2px solid {border_color};
+                    border-radius: 12px;
+                    padding: 12px;
+                    margin: 2px;
+                }}
+            """)
+            card.setFixedHeight(80)
+            card_layout = QHBoxLayout()
+            card_layout.setContentsMargins(10, 5, 10, 5)
+            card.setLayout(card_layout)
+
+            # Icon with trend
+            icon_layout = QVBoxLayout()
+            icon = QLabel(data["icon"])
+            icon.setFont(QFont("Arial", 24))
+            trend = QLabel(data["trend"])
+            trend.setFont(QFont("Arial", 12))
+            icon_layout.addWidget(icon)
+            icon_layout.addWidget(trend)
+            card_layout.addLayout(icon_layout)
+
+            # Main content
+            content_layout = QVBoxLayout()
+            content_layout.setSpacing(2)
+
+            title_label = QLabel(data["title"])
+            title_label.setFont(QFont("Arial", 12, QFont.Bold))
+            title_label.setStyleSheet("color: #2c3e50;")
+
+            value_layout = QHBoxLayout()
+            value_layout.setSpacing(5)
+            value_label = QLabel(data["value"])
+            value_label.setFont(QFont("Arial", 16, QFont.Bold))
+            value_label.setStyleSheet("color: #34495e;")
+            unit_label = QLabel(data["unit"])
+            unit_label.setFont(QFont("Arial", 10))
+            unit_label.setStyleSheet("color: #7f8c8d;")
+            value_layout.addWidget(value_label)
+            value_layout.addWidget(unit_label)
+            value_layout.addStretch()
+
+            subtext_label = QLabel(data["subtext"])
+            subtext_label.setFont(QFont("Arial", 9))
+            subtext_label.setStyleSheet("color: #95a5a6;")
+
+            content_layout.addWidget(title_label)
+            content_layout.addLayout(value_layout)
+            content_layout.addWidget(subtext_label)
+            card_layout.addLayout(content_layout)
+
+            # Mini chart for weight
+            if data.get("has_chart"):
+                mini_chart = QLabel("📊 ↗️ +0.2kg")
+                mini_chart.setFont(QFont("Arial", 10))
+                mini_chart.setStyleSheet("color: #3498db; padding: 5px;")
+                card_layout.addWidget(mini_chart)
+
+            card_layout.addStretch()
+
+            # Detail button with better styling
+            detail_button = QPushButton("›")
+            detail_button.setFixedSize(30, 30)
+            detail_button.setStyleSheet("""
+                QPushButton {
+                    background-color: rgba(255, 255, 255, 0.8);
+                    border: 1px solid #bdc3c7;
+                    border-radius: 15px;
+                    font-size: 16px;
+                    font-weight: bold;
+                    color: #7f8c8d;
+                }
+                QPushButton:hover {
+                    background-color: white;
+                    color: #3498db;
+                    border: 1px solid #3498db;
+                }
+            """)
+            detail_button.clicked.connect(self.view_details)
+            card_layout.addWidget(detail_button)
+
+            metrics_layout.addWidget(card)
+
+        metrics_scroll.setWidget(metrics_widget)
+        self.main_content_layout.addWidget(metrics_scroll)
+
+        # IMPROVED: Main chart section with tabs
+        chart_section = QFrame()
+        chart_section.setStyleSheet("""
+            QFrame {
+                background-color: white;
+                border: 2px solid #ecf0f1;
+                border-radius: 15px;
+                padding: 15px;
+            }
+        """)
+        chart_layout = QVBoxLayout()
+        chart_section.setLayout(chart_layout)
+
+        # Chart header with tabs
+        chart_header = QWidget()
+        chart_header_layout = QHBoxLayout()
+        chart_header.setLayout(chart_header_layout)
+
+        chart_tabs = QTabWidget()
+        chart_tabs.addTab(QWidget(), "Huyết áp")
+        chart_tabs.addTab(QWidget(), "Đường huyết")
+        chart_tabs.addTab(QWidget(), "Cân nặng")
+        chart_tabs.addTab(QWidget(), "Nhịp tim")
+        chart_tabs.addTab(QWidget(), "Nhiệt độ")
+        chart_tabs.setStyleSheet("""
+            QTabWidget::pane {
+                border: none;
+            }
+            QTabBar::tab {
+                background-color: #ecf0f1;
+                padding: 8px 16px;
+                margin: 2px;
+                border-radius: 6px;
+            }
+            QTabBar::tab:selected {
+                background-color: #3498db;
+                color: white;
+            }
+        """)
+        chart_header_layout.addWidget(chart_tabs)
+
+        chart_header_layout.addStretch()
+
+        # Time range selector - Shortened text
+        time_dropdown = QComboBox()
+        time_dropdown.addItems(["7 ngày", "1 tháng", "3 tháng", "6 tháng", "1 năm"])
+        time_dropdown.setStyleSheet("""
+            QComboBox {
+                background-color: #f8f9fa;
+                border: 1px solid #dee2e6;
+                border-radius: 6px;
+                padding: 5px 8px;
+                min-width: 70px;
+                font-size: 11px;
+            }
+        """)
+        chart_header_layout.addWidget(time_dropdown)
+
+        chart_layout.addWidget(chart_header)
+
+        # Chart placeholder with better design
+        chart_placeholder = QFrame()
+        chart_placeholder.setFixedHeight(200)
+        chart_placeholder.setStyleSheet("""
+            QFrame {
+                background-color: #f8f9fa;
+                border: 2px dashed #dee2e6;
+                border-radius: 10px;
+            }
+        """)
+        chart_content = QVBoxLayout()
+        chart_placeholder.setLayout(chart_content)
+
+        chart_label = QLabel("📊 Biểu đồ chi tiết - Chọn tab để xem")
+        chart_label.setAlignment(Qt.AlignCenter)
+        chart_label.setFont(QFont("Arial", 12))
+        chart_label.setStyleSheet("color: #6c757d; margin: 15px;")
+        chart_content.addWidget(chart_label)
+
+        chart_layout.addWidget(chart_placeholder)
+
+        # Chart controls
+        controls_layout = QHBoxLayout()
+
+        # Show average toggle
+        avg_toggle = QPushButton("📊 TB")
+        avg_toggle.setCheckable(True)
+        avg_toggle.setStyleSheet("""
+            QPushButton {
+                background-color: #e9ecef;
+                border: 1px solid #ced4da;
+                border-radius: 6px;
+                padding: 4px 8px;
+                font-size: 10px;
+            }
+            QPushButton:checked {
+                background-color: #28a745;
+                color: white;
+                border: 1px solid #28a745;
+            }
+        """)
+        controls_layout.addWidget(avg_toggle)
+
+        # Show goals toggle
+        goals_toggle = QPushButton("🎯 MT")
+        goals_toggle.setCheckable(True)
+        goals_toggle.setStyleSheet("""
+            QPushButton {
+                background-color: #e9ecef;
+                border: 1px solid #ced4da;
+                border-radius: 6px;
+                padding: 4px 8px;
+                font-size: 10px;
+            }
+            QPushButton:checked {
+                background-color: #fd7e14;
+                color: white;
+                border: 1px solid #fd7e14;
+            }
+        """)
+        controls_layout.addWidget(goals_toggle)
+
+        controls_layout.addStretch()
+        chart_layout.addLayout(controls_layout)
+
+        self.main_content_layout.addWidget(chart_section)
+
+        # IMPROVED: Action buttons with better layout
+        actions_section = QWidget()
+        actions_layout = QHBoxLayout()
+        actions_layout.setSpacing(10)
+        actions_section.setLayout(actions_layout)
+
+        # Primary action - compact size
+        add_data_btn = QPushButton("+ Thêm dữ liệu")
+        add_data_btn.setFixedHeight(40)
+        add_data_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #28a745;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font-weight: bold;
+                font-size: 12px;
+                padding: 0 15px;
+            }
+            QPushButton:hover {
+                background-color: #218838;
+            }
+        """)
+        add_data_btn.clicked.connect(self.add_data)
+        actions_layout.addWidget(add_data_btn)
+
+        # Secondary actions
+        connect_btn = QPushButton("🔗 Kết nối")
+        connect_btn.setFixedHeight(40)
+        connect_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #6c757d;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font-weight: bold;
+                font-size: 12px;
+                padding: 0 12px;
+            }
+            QPushButton:hover {
+                background-color: #545b62;
+            }
+        """)
+        connect_btn.clicked.connect(self.connect_device)
+        actions_layout.addWidget(connect_btn)
+
+        # Auto sync toggle
+        sync_toggle = QPushButton("🔄 Đồng bộ")
+        sync_toggle.setCheckable(True)
+        sync_toggle.setChecked(True)  # Default on
+        sync_toggle.setFixedHeight(40)
+        sync_toggle.setStyleSheet("""
+            QPushButton {
+                background-color: #17a2b8;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font-weight: bold;
+                font-size: 12px;
+                padding: 0 12px;
+            }
+            QPushButton:checked {
+                background-color: #138496;
+            }
+            QPushButton:hover {
+                background-color: #117a8b;
+            }
+        """)
+        actions_layout.addWidget(sync_toggle)
+
+        self.main_content_layout.addWidget(actions_section)
+
+        # IMPROVED: Smart alerts section (replaces simple warning banner)
+        alerts_scroll = QScrollArea()
+        alerts_scroll.setWidgetResizable(True)
+        alerts_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        alerts_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        alerts_scroll.setMaximumHeight(120)
+        alerts_widget = QWidget()
+        alerts_layout = QVBoxLayout()
+        alerts_layout.setSpacing(8)
+        alerts_widget.setLayout(alerts_layout)
+
+        # Multiple alert types
+        alerts_data = [
+            {
+                "type": "warning",
+                "icon": "⚠️",
+                "title": "Huyết áp tăng cao",
+                "message": "3 ngày liên tiếp > 140/90",
+                "action": "Đặt khám",
+                "color": "#f39c12"
+            },
+            {
+                "type": "info",
+                "icon": "💡",
+                "title": "Gợi ý",
+                "message": "Đo đường huyết sau ăn",
+                "action": "Nhắc nhở",
+                "color": "#3498db"
+            }
+        ]
+
+        for alert in alerts_data:
+            alert_card = QFrame()
+            alert_card.setStyleSheet(f"""
+                QFrame {{
+                    background-color: {alert['color']}20;
+                    border-left: 4px solid {alert['color']};
+                    border-radius: 8px;
+                    padding: 10px;
+                }}
+            """)
+            alert_layout = QHBoxLayout()
+            alert_card.setLayout(alert_layout)
+
+            # Icon
+            icon_label = QLabel(alert["icon"])
+            icon_label.setFont(QFont("Arial", 20))
+            alert_layout.addWidget(icon_label)
+
+            # Content
+            content_layout = QVBoxLayout()
+            content_layout.setSpacing(2)
+
+            title_label = QLabel(alert["title"])
+            title_label.setFont(QFont("Arial", 11, QFont.Bold))
+            title_label.setStyleSheet("color: #2c3e50;")
+
+            message_label = QLabel(alert["message"])
+            message_label.setFont(QFont("Arial", 10))
+            message_label.setStyleSheet("color: #34495e;")
+
+            content_layout.addWidget(title_label)
+            content_layout.addWidget(message_label)
+            alert_layout.addLayout(content_layout)
+
+            alert_layout.addStretch()
+
+            # Action button
+            action_btn = QPushButton(alert["action"])
+            action_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {alert['color']};
+                    color: white;
+                    border: none;
+                    border-radius: 5px;
+                    font-size: 10px;
+                    font-weight: bold;
+                    padding: 5px 10px;
+                }}
+                QPushButton:hover {{
+                    opacity: 0.8;
+                }}
+            """)
+            action_btn.clicked.connect(self.view_details)
+            alert_layout.addWidget(action_btn)
+
+            alerts_layout.addWidget(alert_card)
+
+        alerts_scroll.setWidget(alerts_widget)
+        self.main_content_layout.addWidget(alerts_scroll)
+
+        self.main_content_layout.addStretch()
+
+    def load_calendar_screen(self):
+        """Load the calendar screen"""
+        title = QLabel("📅 Lịch Hẹn")
+        title.setFont(QFont("Arial", 20, QFont.Bold))
+        title.setAlignment(Qt.AlignCenter)
+        self.main_content_layout.addWidget(title)
+
+        content = QLabel("Đây là màn hình lịch hẹn.\nBạn có thể xem và quản lý các cuộc hẹn ở đây.")
+        content.setAlignment(Qt.AlignCenter)
+        content.setStyleSheet("font-size: 14px; color: #7f8c8d; margin: 20px;")
+        self.main_content_layout.addWidget(content)
+
+        self.main_content_layout.addStretch()
+
+    def load_settings_screen(self):
+        """Load the settings screen"""
+        title = QLabel("⚙️ Cài Đặt")
+        title.setFont(QFont("Arial", 20, QFont.Bold))
+        title.setAlignment(Qt.AlignCenter)
+        self.main_content_layout.addWidget(title)
+
+        content = QLabel("Đây là màn hình cài đặt.\nBạn có thể thay đổi các thiết lập ứng dụng ở đây.")
+        content.setAlignment(Qt.AlignCenter)
+        content.setStyleSheet("font-size: 14px; color: #7f8c8d; margin: 20px;")
+        self.main_content_layout.addWidget(content)
+
+        self.main_content_layout.addStretch()
+
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    window = MainWindow()
+    window.show()
+    sys.exit(app.exec_())
